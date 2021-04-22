@@ -1,0 +1,29 @@
+@host =  http://localhost
+@subscriberName = mysubscriber
+@apiKey = myapikey
+
+### Create subscriber
+POST {{host}}/subscribers
+X-API-KEY: {{apiKey}}
+
+{ "name": "{{subscriberName}}",
+  "types": ["type1"],
+  "maxParallelism": null,
+  "numberOfWorkers": null,
+  "retryIntervals": [10, 20, 40],
+  "uri":"https://endt2nbwxnhqy62.m.pipedream.net" }
+
+### Send event
+POST {{host}}
+X-API-KEY: {{apiKey}}
+
+{ "type": "type1",
+  "data": {"name":"jon"} }
+
+### Get all subscribers
+GET {{host}}/subscribers
+X-API-KEY: {{apiKey}}
+
+### Delete subscriber
+DELETE {{host}}/subscribers/{{subscriberName}}
+X-API-KEY: {{apiKey}}
