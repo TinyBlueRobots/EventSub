@@ -129,7 +129,7 @@ namespace EventSub
             ISqlClient sqlClient = CreateSqlClient(databaseConfig);
             sqlClient.CreateSubscribersTable().Wait();
             var subscribers = sqlClient.ReadSubscribers().Result;
-            builder.ConfigureServices(services => services.AddHttpClient());
+            builder.ConfigureServices(services => { services.AddHttpClient(); services.AddRouting(); });
             builder.Configure(app =>
            {
                var httpClient = app.ApplicationServices.GetService<IHttpClientFactory>().CreateClient();
