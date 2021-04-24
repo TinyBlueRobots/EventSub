@@ -13,15 +13,14 @@ namespace EventSub
 {
     class MessageHandler : IHandleMessages<Message>, IHandleMessages<IFailed<Message>>
     {
-        readonly HttpClient httpClient;
+        static readonly HttpClient httpClient = new HttpClient();
         readonly int[] retryIntervals;
         readonly string name;
         readonly Uri uri;
         readonly IBus bus;
 
-        public MessageHandler(HttpClient httpClient, int[] retryIntervals, string name, Uri uri, IBus bus)
+        public MessageHandler(int[] retryIntervals, string name, Uri uri, IBus bus)
         {
-            this.httpClient = httpClient;
             this.retryIntervals = retryIntervals ?? new int[0];
             this.name = name;
             this.uri = uri;

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -69,13 +68,13 @@ namespace EventSub
             }
         }
 
-        static async Task<bool> TryCreateSubscriber(DatabaseConfig databaseConfig, HttpClient httpClient, Subscriber subscriber)
+        static async Task<bool> TryCreateSubscriber(DatabaseConfig databaseConfig, Subscriber subscriber)
         {
             if (subscriber.Name is null || !Uri.IsWellFormedUriString(subscriber.Uri, UriKind.Absolute))
             {
                 throw new JsonException();
             }
-            var created = await PubSub.CreateSubscriberAsync(databaseConfig, subscriber, httpClient);
+            var created = await PubSub.CreateSubscriberAsync(databaseConfig, subscriber);
             if (created)
             {
                 await CreateSqlClient(databaseConfig).CreateSubscriber(subscriber);
@@ -83,22 +82,28 @@ namespace EventSub
             return created;
         }
 
-        static bool ValidateName(string name) => Regex.IsMatch(name, "^[A-Za-z0-9]{1,128}$");
+        static bool ValidateSubscriber(Subscriber subscriber) =>
+          subscriber.Name is not null
+          && Regex.IsMatch(subscriber.Name, "^[A-Za-z0-9]{1,128}$")
+          && subscriber.Types.Length > 0
+          && Uri.IsWellFormedUriString(subscriber.Uri, UriKind.Absolute);
 
-        static async Task CreateSubscriber(Func<Subscriber, Task<bool>> tryCreateSubscriber, HttpContext ctx)
+        static async Task CreateSubscriber(DatabaseConfig databaseConfig, HttpContext ctx)
         {
             try
             {
                 var json = await new StreamReader(ctx.Request.Body).ReadToEndAsync();
                 var subscriber = JsonConvert.DeserializeObject<Subscriber>(json);
-                if (subscriber.Name is null || !ValidateName(subscriber.Name) || !Uri.IsWellFormedUriString(subscriber.Uri, UriKind.Absolute))
+                if (ValidateSubscriber(subscriber))
+                {
+                    if (!await TryCreateSubscriber(databaseConfig, subscriber))
+                    {
+                        ctx.Response.StatusCode = 409;
+                    }
+                }
+                else
                 {
                     throw new JsonException();
-                }
-                var created = await tryCreateSubscriber(subscriber);
-                if (!created)
-                {
-                    ctx.Response.StatusCode = 409;
                 }
             }
             catch (Exception ex)
@@ -129,14 +134,12 @@ namespace EventSub
             ISqlClient sqlClient = CreateSqlClient(databaseConfig);
             sqlClient.CreateSubscribersTable().Wait();
             var subscribers = sqlClient.ReadSubscribers().Result;
-            builder.ConfigureServices(services => { services.AddHttpClient(); services.AddRouting(); });
+            builder.ConfigureServices(services => services.AddRouting());
             builder.Configure(app =>
            {
-               var httpClient = app.ApplicationServices.GetService<IHttpClientFactory>().CreateClient();
-               Func<Subscriber, Task<bool>> tryCreateSubscriber = subscriber => TryCreateSubscriber(databaseConfig, httpClient, subscriber);
                foreach (var subscriber in subscribers)
                {
-                   tryCreateSubscriber(subscriber).Wait();
+                   TryCreateSubscriber(databaseConfig, subscriber).Wait();
                }
                app.UseDeveloperExceptionPage();
                app.Use(async (ctx, next) =>
@@ -159,7 +162,7 @@ namespace EventSub
                app.UseEndpoints(endpoints =>
                {
                    endpoints.MapPost("/", ctx => PublishMessage(publish, ctx));
-                   endpoints.MapPost("/subscribers", ctx => CreateSubscriber(tryCreateSubscriber, ctx));
+                   endpoints.MapPost("/subscribers", ctx => CreateSubscriber(databaseConfig, ctx));
                    endpoints.MapDelete("/subscribers/{name:required}", ctx => DeleteSubscriber(databaseConfig, ctx));
                    endpoints.MapGet("/subscribers", ctx => GetSubscribers(databaseConfig, ctx));
                });

@@ -48,7 +48,7 @@ namespace EventSub
             return configurer.Start().Advanced.Topics.Publish;
         }
 
-        internal static async Task<bool> CreateSubscriberAsync(DatabaseConfig databaseConfig, Subscriber subscriber, HttpClient httpClient)
+        internal static async Task<bool> CreateSubscriberAsync(DatabaseConfig databaseConfig, Subscriber subscriber)
         {
             if (!Subscribers.Keys.Contains(subscriber.Name))
             {
@@ -74,7 +74,7 @@ namespace EventSub
                             .Options(config => config.SetMaxParallelism(subscriber.MaxParallelism ?? Options.DefaultMaxParallelism))
                             .Start();
                     bus.Advanced.Workers.SetNumberOfWorkers(0);
-                    var handler = new MessageHandler(httpClient, subscriber.RetryIntervals, subscriber.Name, new Uri(subscriber.Uri), bus);
+                    var handler = new MessageHandler(subscriber.RetryIntervals, subscriber.Name, new Uri(subscriber.Uri), bus);
                     activator.Register(() => handler);
                     bus.Advanced.Workers.SetNumberOfWorkers(subscriber.NumberOfWorkers ?? Options.DefaultNumberOfWorkers);
                     await bus.Advanced.Topics.Subscribe(type);
