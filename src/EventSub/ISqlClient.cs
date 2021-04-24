@@ -12,6 +12,5 @@ namespace EventSub
         Task CreateSubscribersTable();
         Task<IEnumerable<Subscriber>> ReadSubscribers();
         Task<Subscriber> ReadSubscriber(string name);
-        string ConnectionString { get; }
     }
 }

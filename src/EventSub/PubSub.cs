@@ -31,16 +31,16 @@ namespace EventSub
             }
         }
 
-        internal static Publish CreatePublisher(DatabaseConfig databaseConfig)
+        internal static Publish CreatePublisher(Database database)
         {
             var configurer = Configure.With(new BuiltinHandlerActivator());
-            switch (databaseConfig)
+            switch (database.Type)
             {
-                case MySqlConfig sqlConfig:
+                case DatabaseType.MySql:
                     configurer =
                         configurer
-                            .Transport(config => config.UseMySql(new MySqlTransportOptions(sqlConfig.ConnectionString), "Publisher"))
-                            .Subscriptions(config => config.StoreInMySql(sqlConfig.ConnectionString, "Subscriptions", true));
+                            .Transport(config => config.UseMySql(new MySqlTransportOptions(database.ConnectionString), "Publisher"))
+                            .Subscriptions(config => config.StoreInMySql(database.ConnectionString, "Subscriptions", true));
                     break;
                 default:
                     throw new System.ArgumentException("Unhandled DatabaseConfig");
@@ -48,7 +48,7 @@ namespace EventSub
             return configurer.Start().Advanced.Topics.Publish;
         }
 
-        internal static async Task<bool> CreateSubscriberAsync(DatabaseConfig databaseConfig, Subscriber subscriber)
+        internal static async Task<bool> CreateSubscriberAsync(Database database, Subscriber subscriber)
         {
             if (!Subscribers.Keys.Contains(subscriber.Name))
             {
@@ -57,13 +57,13 @@ namespace EventSub
                 {
                     var activator = new BuiltinHandlerActivator();
                     var configurer = Configure.With(activator);
-                    switch (databaseConfig)
+                    switch (database.Type)
                     {
-                        case MySqlConfig sqlConfig:
+                        case DatabaseType.MySql:
                             configurer =
                                 configurer
-                                    .Transport(config => config.UseMySql(new MySqlTransportOptions(sqlConfig.ConnectionString), subscriber.Name))
-                                    .Subscriptions(config => config.StoreInMySql(sqlConfig.ConnectionString, "Subscriptions", true));
+                                    .Transport(config => config.UseMySql(new MySqlTransportOptions(database.ConnectionString), subscriber.Name))
+                                    .Subscriptions(config => config.StoreInMySql(database.ConnectionString, "Subscriptions", true));
                             break;
                         default:
                             throw new System.ArgumentException("Unhandled DatabaseConfig");

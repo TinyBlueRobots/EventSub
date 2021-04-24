@@ -29,7 +29,7 @@ namespace Tests
             {
                 connection.Execute("DROP TABLE test.Subscriptions;DROP TABLE test.Subscribers;");
             }
-            var webHost = new WebHostBuilder().UseEventSub(new MySqlConfig(ConnectionString), "apikey");
+            var webHost = new WebHostBuilder().UseEventSub(Database.MySql(ConnectionString), "apikey");
             var testServer = new TestServer(webHost);
             httpClient = testServer.CreateClient();
             httpClient.DefaultRequestHeaders.Add("X-API-KEY", "apikey");

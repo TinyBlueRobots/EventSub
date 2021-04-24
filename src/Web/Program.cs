@@ -13,7 +13,7 @@ namespace Web
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseEventSub(new MySqlConfig(Environment.GetEnvironmentVariable("CONNECTIONSTRING")), Environment.GetEnvironmentVariable("APIKEY"));
+                    webBuilder.UseEventSub(Database.MySql(Environment.GetEnvironmentVariable("CONNECTIONSTRING")), Environment.GetEnvironmentVariable("APIKEY"));
                     webBuilder.UseUrls(url);
                 })
                 .Build()

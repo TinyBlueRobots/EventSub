@@ -11,8 +11,6 @@ namespace EventSub
     {
         string connectionString;
 
-        public string ConnectionString => connectionString;
-
         public MySqlClient(string connectionString)
         {
             this.connectionString = connectionString;

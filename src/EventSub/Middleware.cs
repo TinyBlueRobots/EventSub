@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -14,20 +13,20 @@ namespace EventSub
 {
     public static class IWebHostBuilderExtensions
     {
-        static ISqlClient CreateSqlClient(DatabaseConfig databaseConfig)
+        static ISqlClient CreateSqlClient(Database database)
         {
-            switch (databaseConfig)
+            switch (database.Type)
             {
-                case MySqlConfig config:
-                    return new MySqlClient(config.ConnectionString);
+                case DatabaseType.MySql:
+                    return new MySqlClient(database.ConnectionString);
                 default:
                     throw new System.ArgumentException("Unhandled DatabaseConfig");
             }
         }
 
-        static async Task GetSubscribers(DatabaseConfig databaseConfig, HttpContext ctx)
+        static async Task GetSubscribers(Database database, HttpContext ctx)
         {
-            var sqlClient = CreateSqlClient(databaseConfig);
+            var sqlClient = CreateSqlClient(database);
             var messageCounts = await sqlClient.GetMessageCounts();
             var subscribers = await sqlClient.ReadSubscribers();
             var subscriberDetails = new List<dynamic>();
@@ -49,10 +48,10 @@ namespace EventSub
             await ctx.Response.WriteAsJsonAsync(subscriberDetails);
         }
 
-        static async Task GetSubscriber(DatabaseConfig databaseConfig, HttpContext ctx)
+        static async Task GetSubscriber(Database database, HttpContext ctx)
         {
             var name = ctx.Request.RouteValues["name"].ToString();
-            var sqlClient = CreateSqlClient(databaseConfig);
+            var sqlClient = CreateSqlClient(database);
             var (activeMessageCount, deadLetterMessageCount) = await sqlClient.GetMessageCount(name);
             var subscriber = await sqlClient.ReadSubscriber(name);
             var subscriberDetails = new
@@ -87,17 +86,17 @@ namespace EventSub
             }
         }
 
-        static async Task<bool> TryCreateSubscriber(DatabaseConfig databaseConfig, Subscriber subscriber)
+        static async Task<bool> TryCreateSubscriber(Database database, Subscriber subscriber)
         {
             if (subscriber.Name is null || !Uri.IsWellFormedUriString(subscriber.Uri, UriKind.Absolute))
             {
                 throw new JsonException();
             }
-            var sqlClient = CreateSqlClient(databaseConfig);
-            var created = await PubSub.CreateSubscriberAsync(databaseConfig, subscriber);
+            var sqlClient = CreateSqlClient(database);
+            var created = await PubSub.CreateSubscriberAsync(database, subscriber);
             if (created)
             {
-                await CreateSqlClient(databaseConfig).CreateSubscriber(subscriber);
+                await CreateSqlClient(database).CreateSubscriber(subscriber);
             }
             return created;
         }
@@ -108,7 +107,7 @@ namespace EventSub
           && subscriber.Types.Length > 0
           && Uri.IsWellFormedUriString(subscriber.Uri, UriKind.Absolute);
 
-        static async Task CreateSubscriber(DatabaseConfig databaseConfig, HttpContext ctx)
+        static async Task CreateSubscriber(Database database, HttpContext ctx)
         {
             try
             {
@@ -116,7 +115,7 @@ namespace EventSub
                 var subscriber = JsonConvert.DeserializeObject<Subscriber>(json);
                 if (ValidateSubscriber(subscriber))
                 {
-                    if (!await TryCreateSubscriber(databaseConfig, subscriber))
+                    if (!await TryCreateSubscriber(database, subscriber))
                     {
                         ctx.Response.StatusCode = 409;
                     }
@@ -140,18 +139,18 @@ namespace EventSub
             }
         }
 
-        static async Task DeleteSubscriber(DatabaseConfig databaseConfig, HttpContext ctx)
+        static async Task DeleteSubscriber(Database database, HttpContext ctx)
         {
             var name = ctx.Request.RouteValues["name"].ToString();
             await PubSub.DeleteSubscriber(name);
-            var sqlClient = CreateSqlClient(databaseConfig);
+            var sqlClient = CreateSqlClient(database);
             await sqlClient.DeleteSubscriber(name);
         }
 
-        public static IWebHostBuilder UseEventSub(this IWebHostBuilder builder, DatabaseConfig databaseConfig, string apiKey)
+        public static IWebHostBuilder UseEventSub(this IWebHostBuilder builder, Database database, string apiKey)
         {
-            var publish = PubSub.CreatePublisher(databaseConfig);
-            ISqlClient sqlClient = CreateSqlClient(databaseConfig);
+            var publish = PubSub.CreatePublisher(database);
+            ISqlClient sqlClient = CreateSqlClient(database);
             sqlClient.CreateSubscribersTable().Wait();
             var subscribers = sqlClient.ReadSubscribers().Result;
             builder.ConfigureServices(services => services.AddRouting());
@@ -159,7 +158,7 @@ namespace EventSub
            {
                foreach (var subscriber in subscribers)
                {
-                   TryCreateSubscriber(databaseConfig, subscriber).Wait();
+                   TryCreateSubscriber(database, subscriber).Wait();
                }
                app.UseDeveloperExceptionPage();
                app.Use(async (ctx, next) =>
@@ -182,10 +181,10 @@ namespace EventSub
                app.UseEndpoints(endpoints =>
                {
                    endpoints.MapPost("/", ctx => PublishMessage(publish, ctx));
-                   endpoints.MapPost("/subscribers", ctx => CreateSubscriber(databaseConfig, ctx));
-                   endpoints.MapDelete("/subscribers/{name:required}", ctx => DeleteSubscriber(databaseConfig, ctx));
-                   endpoints.MapGet("/subscribers/{name:required}", ctx => GetSubscriber(databaseConfig, ctx));
-                   endpoints.MapGet("/subscribers", ctx => GetSubscribers(databaseConfig, ctx));
+                   endpoints.MapPost("/subscribers", ctx => CreateSubscriber(database, ctx));
+                   endpoints.MapDelete("/subscribers/{name:required}", ctx => DeleteSubscriber(database, ctx));
+                   endpoints.MapGet("/subscribers/{name:required}", ctx => GetSubscriber(database, ctx));
+                   endpoints.MapGet("/subscribers", ctx => GetSubscribers(database, ctx));
                });
            });
             return builder;
