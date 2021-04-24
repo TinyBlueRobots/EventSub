@@ -28,27 +28,26 @@ namespace EventSub
         {
             using (var connection = new MySqlConnection(connectionString))
             {
-                await connection.ExecuteAsync($"DROP TABLE `{name}`");
-                await connection.ExecuteAsync($"DROP TABLE `{name}_deadletter`");
-                await connection.ExecuteAsync($"DELETE FROM Subscribers WHERE Name='{name}'");
+                await connection.ExecuteAsync($"DROP TABLE `{name}`;DROP TABLE `{name}_deadletter`;DELETE FROM Subscribers WHERE Name='{name}'");
             }
         }
 
         public async Task<Dictionary<string, (int, int)>> GetMessageCounts()
         {
-            if (PubSub.Subscribers.Count > 0)
+            using (var connection = new MySqlConnection(connectionString))
             {
-                using (var connection = new MySqlConnection(connectionString))
+                var subscriberNames = await connection.QueryAsync<string>("SELECT Name FROM Subscribers");
+                if (subscriberNames.Count() > 0)
                 {
-                    var messageCountSql = PubSub.Subscribers.Aggregate("", (sql, kvp) => sql + $"SELECT '{kvp.Key}' AS Name, COUNT(*) AS Count FROM `{kvp.Key}`;");
-                    var deadLetterCountSql = PubSub.Subscribers.Aggregate("", (sql, kvp) => sql + $"SELECT '{kvp.Key}' AS Name, COUNT(*) AS Count FROM `{kvp.Key}_deadletter`;");
+                    var messageCountSql = subscriberNames.Aggregate("", (sql, name) => sql + $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM `{name}`;");
+                    var deadLetterCountSql = subscriberNames.Aggregate("", (sql, name) => sql + $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM `{name}_deadletter`;");
                     var messageCountResults = await connection.QueryAsync(messageCountSql);
                     var deadLetterCountResults = await connection.QueryAsync(deadLetterCountSql);
                     var deadLetterCounts = deadLetterCountResults.ToDictionary(result => result.Name, result => result.Count);
                     return messageCountResults.ToDictionary(messageCount => (string)messageCount.Name, messageCount => ((int)messageCount.Count, (int)deadLetterCounts[messageCount.Name]));
                 }
+                else { return new Dictionary<string, (int, int)>(); }
             }
-            else { return new Dictionary<string, (int, int)>(); }
         }
 
         public async Task<IEnumerable<Subscriber>> ReadSubscribers()

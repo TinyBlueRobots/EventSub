@@ -27,8 +27,6 @@ namespace EventSub
 
         static async Task GetSubscribers(DatabaseConfig databaseConfig, HttpContext ctx)
         {
-            var messageCount = PubSub.Subscribers.Aggregate("", (sql, kvp) => sql + $"SELECT ${kvp.Key} AS Name, COUNT(*) FROM ${kvp.Key};");
-            var deadLetterCount = PubSub.Subscribers.Aggregate("", (sql, kvp) => sql + $"SELECT ${kvp.Key} AS Name, COUNT(*) FROM ${kvp.Key}-deadletter;");
             var sqlClient = CreateSqlClient(databaseConfig);
             var messageCounts = await sqlClient.GetMessageCounts();
             var subscriberDetails = new List<dynamic>();
