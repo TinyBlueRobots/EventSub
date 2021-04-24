@@ -45,6 +45,11 @@ namespace Tests
             return httpClient.GetStringAsync("/subscribers");
         }
 
+        public Task<string> GetSubscriber(string name)
+        {
+            return httpClient.GetStringAsync($"/subscribers/{name}");
+        }
+
         public async Task<HttpResponseMessage> PublishMessage(string json)
         {
             var response = await httpClient.PostAsync("/", new StringContent(json));

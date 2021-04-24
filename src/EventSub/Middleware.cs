@@ -29,10 +29,11 @@ namespace EventSub
         {
             var sqlClient = CreateSqlClient(databaseConfig);
             var messageCounts = await sqlClient.GetMessageCounts();
+            var subscribers = await sqlClient.ReadSubscribers();
             var subscriberDetails = new List<dynamic>();
-            foreach (var (name, (subscriber, _)) in PubSub.Subscribers)
+            foreach (var subscriber in subscribers)
             {
-                var (activeMessageCount, deadLetterMessageCount) = messageCounts[name];
+                var (activeMessageCount, deadLetterMessageCount) = messageCounts[subscriber.Name];
                 subscriberDetails.Add(new
                 {
                     subscriber.RetryIntervals,
@@ -45,6 +46,26 @@ namespace EventSub
                     DeadLetterCount = deadLetterMessageCount
                 });
             }
+            await ctx.Response.WriteAsJsonAsync(subscriberDetails);
+        }
+
+        static async Task GetSubscriber(DatabaseConfig databaseConfig, HttpContext ctx)
+        {
+            var name = ctx.Request.RouteValues["name"].ToString();
+            var sqlClient = CreateSqlClient(databaseConfig);
+            var (activeMessageCount, deadLetterMessageCount) = await sqlClient.GetMessageCount(name);
+            var subscriber = await sqlClient.ReadSubscriber(name);
+            var subscriberDetails = new
+            {
+                subscriber.RetryIntervals,
+                subscriber.MaxParallelism,
+                subscriber.Name,
+                subscriber.NumberOfWorkers,
+                subscriber.Types,
+                subscriber.Uri,
+                MessageCount = activeMessageCount,
+                DeadLetterCount = deadLetterMessageCount
+            };
             await ctx.Response.WriteAsJsonAsync(subscriberDetails);
         }
 
@@ -72,6 +93,7 @@ namespace EventSub
             {
                 throw new JsonException();
             }
+            var sqlClient = CreateSqlClient(databaseConfig);
             var created = await PubSub.CreateSubscriberAsync(databaseConfig, subscriber);
             if (created)
             {
@@ -120,7 +142,7 @@ namespace EventSub
 
         static async Task DeleteSubscriber(DatabaseConfig databaseConfig, HttpContext ctx)
         {
-            string name = ctx.Request.RouteValues["name"].ToString();
+            var name = ctx.Request.RouteValues["name"].ToString();
             await PubSub.DeleteSubscriber(name);
             var sqlClient = CreateSqlClient(databaseConfig);
             await sqlClient.DeleteSubscriber(name);
@@ -162,6 +184,7 @@ namespace EventSub
                    endpoints.MapPost("/", ctx => PublishMessage(publish, ctx));
                    endpoints.MapPost("/subscribers", ctx => CreateSubscriber(databaseConfig, ctx));
                    endpoints.MapDelete("/subscribers/{name:required}", ctx => DeleteSubscriber(databaseConfig, ctx));
+                   endpoints.MapGet("/subscribers/{name:required}", ctx => GetSubscriber(databaseConfig, ctx));
                    endpoints.MapGet("/subscribers", ctx => GetSubscribers(databaseConfig, ctx));
                });
            });

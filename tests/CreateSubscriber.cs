@@ -19,8 +19,8 @@ namespace Tests
             expectedSubscriber = new Subscriber(nameof(CreateSubscriber), new[] { "test" }, testApi.Handler.Url, null, null, null);
             var subscriberJson = JsonConvert.SerializeObject(expectedSubscriber);
             createSubscriberResponse = await testApi.RegisterSubscriber(subscriberJson);
-            var subscribersJson = await testApi.GetSubscribers();
-            actualSubscriber = JsonConvert.DeserializeObject<Subscriber[]>(subscribersJson)[0];
+            var subscriberResponseJson = await testApi.GetSubscriber(expectedSubscriber.Name);
+            actualSubscriber = JsonConvert.DeserializeObject<Subscriber>(subscriberResponseJson);
         }
 
         [Test]

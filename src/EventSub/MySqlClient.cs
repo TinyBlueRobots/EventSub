@@ -9,7 +9,9 @@ namespace EventSub
 {
     class MySqlClient : ISqlClient
     {
-        readonly string connectionString;
+        string connectionString;
+
+        public string ConnectionString => connectionString;
 
         public MySqlClient(string connectionString)
         {
@@ -29,6 +31,23 @@ namespace EventSub
             using (var connection = new MySqlConnection(connectionString))
             {
                 await connection.ExecuteAsync($"DROP TABLE `{name}`;DROP TABLE `{name}_deadletter`;DELETE FROM Subscribers WHERE Name='{name}'");
+            }
+        }
+
+        public async Task<(int, int)> GetMessageCount(string name)
+        {
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                var subscriberExists = await connection.ExecuteAsync($"SELECT COUNT(*) FROM Subscribers WHERE Name='{name}'");
+                if (subscriberExists != 0)
+                {
+                    var messageCountSql = $"SELECT COUNT(*) AS Count FROM `{name}`";
+                    var deadLetterCountSql = $"SELECT COUNT(*) AS Count FROM `{name}_deadletter`;";
+                    var messageCount = await connection.ExecuteAsync(messageCountSql);
+                    var deadLetterCount = await connection.ExecuteAsync(deadLetterCountSql);
+                    return (messageCount, deadLetterCount);
+                }
+                else { return (0, 0); }
             }
         }
 
@@ -65,6 +84,15 @@ namespace EventSub
             {
                 var json = JsonConvert.SerializeObject(subscriber);
                 await connection.ExecuteAsync($"INSERT IGNORE INTO Subscribers (Name, Subscriber) VALUES ('{subscriber.Name}','{json}')");
+            }
+        }
+
+        public async Task<Subscriber> ReadSubscriber(string name)
+        {
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                var json = await connection.QueryFirstOrDefaultAsync<string>($"SELECT Subscriber FROM Subscribers WHERE Name='{name}'");
+                return json is null ? null : JsonConvert.DeserializeObject<Subscriber>(json);
             }
         }
     }
