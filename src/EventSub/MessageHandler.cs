@@ -36,10 +36,8 @@ namespace EventSub
 
         public Task Handle(IFailed<Message> message)
         {
-            string? deferCountValue;
-            message.Headers.TryGetValue(Headers.DeferCount, out deferCountValue);
-            int deferCount;
-            int.TryParse(deferCountValue, out deferCount);
+            message.Headers.TryGetValue(Headers.DeferCount, out var deferCountValue);
+            int.TryParse(deferCountValue, out var deferCount);
             if (deferCount < retryIntervals.Length)
             {
                 return bus.Advanced.TransportMessage.Defer(TimeSpan.FromSeconds(retryIntervals[deferCount]));

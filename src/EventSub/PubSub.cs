@@ -17,8 +17,7 @@ namespace EventSub
 
         internal static async Task DeleteSubscriber(string name)
         {
-            (Subscriber, List<(string, IBus)>) subscriber;
-            if (Subscribers.Remove(name, out subscriber))
+            if (Subscribers.Remove(name, out var subscriber))
             {
                 var (_, subscriptions) = subscriber;
                 foreach (var (type, bus) in subscriptions)
@@ -49,7 +48,7 @@ namespace EventSub
                 case DatabaseType.PostgreSql:
                     configurer =
                         configurer
-                            .Transport(config => config.UsePostgreSqlAsOneWayClient(database.ConnectionString, "Publisher"))
+                            .Transport(config => config.UsePostgreSql(database.ConnectionString, "Publisher", "Publisher"))
                             .Subscriptions(config => config.StoreInPostgres(database.ConnectionString, "Subscriptions", true));
                     break;
                 default:
