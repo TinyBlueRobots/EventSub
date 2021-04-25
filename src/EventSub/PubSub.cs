@@ -49,7 +49,7 @@ namespace EventSub
                 case DatabaseType.PostgreSql:
                     configurer =
                         configurer
-                            .Transport(config => config.UsePostgreSql(database.ConnectionString, "Publisher", "Publisher"))
+                            .Transport(config => config.UsePostgreSqlAsOneWayClient(database.ConnectionString, "Publisher"))
                             .Subscriptions(config => config.StoreInPostgres(database.ConnectionString, "Subscriptions", true));
                     break;
                 default:
@@ -58,7 +58,7 @@ namespace EventSub
             return configurer.Start().Advanced.Topics.Publish;
         }
 
-        internal static async Task<bool> CreateSubscriberAsync(Database database, Subscriber subscriber)
+        internal static async Task<bool> CreateSubscriber(Database database, Subscriber subscriber)
         {
             if (!Subscribers.Keys.Contains(subscriber.Name))
             {

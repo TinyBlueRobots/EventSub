@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,10 @@ namespace EventSub
             {
                 case DatabaseType.MySql:
                     return new MySqlClient(database.ConnectionString);
+                case DatabaseType.SqlServer:
+                    return new SqlServerClient(database.ConnectionString);
+                case DatabaseType.PostgreSql:
+                    return new PostgreSqlClient(database.ConnectionString);
                 default:
                     throw new System.ArgumentException("Unhandled DatabaseConfig");
             }
@@ -54,10 +59,10 @@ namespace EventSub
             if (name is not null)
             {
                 var sqlClient = CreateSqlClient(database);
-                var (activeMessageCount, deadLetterMessageCount) = await sqlClient.GetMessageCount(name);
                 var subscriber = await sqlClient.ReadSubscriber(name);
                 if (subscriber is not null)
                 {
+                    var (activeMessageCount, deadLetterMessageCount) = await sqlClient.GetMessageCount(name);
                     var subscriberDetails = new
                     {
                         subscriber.RetryIntervals,
@@ -71,6 +76,14 @@ namespace EventSub
                     };
                     await ctx.Response.WriteAsJsonAsync(subscriberDetails);
                 }
+                else
+                {
+                    ctx.Response.StatusCode = 404;
+                }
+            }
+            else
+            {
+                ctx.Response.StatusCode = 404;
             }
         }
 
@@ -99,7 +112,7 @@ namespace EventSub
                 throw new JsonException();
             }
             var sqlClient = CreateSqlClient(database);
-            var created = await PubSub.CreateSubscriberAsync(database, subscriber);
+            var created = await PubSub.CreateSubscriber(database, subscriber);
             if (created)
             {
                 await CreateSqlClient(database).CreateSubscriber(subscriber);
@@ -109,7 +122,7 @@ namespace EventSub
 
         static bool ValidateSubscriber(Subscriber subscriber) =>
           subscriber.Name is not null
-          && Regex.IsMatch(subscriber.Name, "^[A-Za-z0-9]{1,128}$")
+          && Regex.IsMatch(subscriber.Name, "^[a-z0-9]{1,128}$")
           && subscriber.Types.Length > 0
           && Uri.IsWellFormedUriString(subscriber.Uri, UriKind.Absolute);
 
@@ -169,7 +182,13 @@ namespace EventSub
                {
                    TryCreateSubscriber(database, subscriber).Wait();
                }
-               app.UseDeveloperExceptionPage();
+               app.UseExceptionHandler(errorApp => errorApp.Run(async ctx =>
+               {
+                   ctx.Response.StatusCode = 500;
+                   var exceptionHandlerPathFeature =
+                   ctx.Features.Get<IExceptionHandlerPathFeature>();
+                   await ctx.Response.WriteAsJsonAsync(exceptionHandlerPathFeature.Error);
+               }));
                app.Use(async (ctx, next) =>
                {
                    var apiKeyHeader = ctx.Request.Headers["X-API-KEY"].ToString();
