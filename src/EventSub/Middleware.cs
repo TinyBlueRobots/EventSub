@@ -50,22 +50,28 @@ namespace EventSub
 
         static async Task GetSubscriber(Database database, HttpContext ctx)
         {
-            var name = ctx.Request.RouteValues["name"].ToString();
-            var sqlClient = CreateSqlClient(database);
-            var (activeMessageCount, deadLetterMessageCount) = await sqlClient.GetMessageCount(name);
-            var subscriber = await sqlClient.ReadSubscriber(name);
-            var subscriberDetails = new
+            var name = ctx.Request.RouteValues["name"]?.ToString();
+            if (name is not null)
             {
-                subscriber.RetryIntervals,
-                subscriber.MaxParallelism,
-                subscriber.Name,
-                subscriber.NumberOfWorkers,
-                subscriber.Types,
-                subscriber.Uri,
-                MessageCount = activeMessageCount,
-                DeadLetterCount = deadLetterMessageCount
-            };
-            await ctx.Response.WriteAsJsonAsync(subscriberDetails);
+                var sqlClient = CreateSqlClient(database);
+                var (activeMessageCount, deadLetterMessageCount) = await sqlClient.GetMessageCount(name);
+                var subscriber = await sqlClient.ReadSubscriber(name);
+                if (subscriber is not null)
+                {
+                    var subscriberDetails = new
+                    {
+                        subscriber.RetryIntervals,
+                        subscriber.MaxParallelism,
+                        subscriber.Name,
+                        subscriber.NumberOfWorkers,
+                        subscriber.Types,
+                        subscriber.Uri,
+                        MessageCount = activeMessageCount,
+                        DeadLetterCount = deadLetterMessageCount
+                    };
+                    await ctx.Response.WriteAsJsonAsync(subscriberDetails);
+                }
+            }
         }
 
         static async Task PublishMessage(PubSub.Publish publish, HttpContext ctx)
@@ -141,10 +147,13 @@ namespace EventSub
 
         static async Task DeleteSubscriber(Database database, HttpContext ctx)
         {
-            var name = ctx.Request.RouteValues["name"].ToString();
-            await PubSub.DeleteSubscriber(name);
-            var sqlClient = CreateSqlClient(database);
-            await sqlClient.DeleteSubscriber(name);
+            var name = ctx.Request.RouteValues["name"]?.ToString();
+            if (name is not null)
+            {
+                await PubSub.DeleteSubscriber(name);
+                var sqlClient = CreateSqlClient(database);
+                await sqlClient.DeleteSubscriber(name);
+            }
         }
 
         public static IWebHostBuilder UseEventSub(this IWebHostBuilder builder, Database database, string apiKey)

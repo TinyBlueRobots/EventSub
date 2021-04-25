@@ -4,7 +4,7 @@ namespace EventSub
     {
         MySql,
         SqlServer,
-        Postgresql
+        PostgreSql
     }
 
     public class Database
@@ -21,6 +21,16 @@ namespace EventSub
         public static Database MySql(string connectionString)
         {
             return new Database(DatabaseType.MySql, connectionString);
+        }
+
+        public static Database SqlServer(string connectionString)
+        {
+            return new Database(DatabaseType.SqlServer, connectionString);
+        }
+
+        public static Database PostgreSql(string connectionString)
+        {
+            return new Database(DatabaseType.PostgreSql, connectionString);
         }
     }
 

@@ -36,7 +36,7 @@ namespace EventSub
 
         public Task Handle(IFailed<Message> message)
         {
-            string deferCountValue;
+            string? deferCountValue;
             message.Headers.TryGetValue(Headers.DeferCount, out deferCountValue);
             int deferCount;
             int.TryParse(deferCountValue, out deferCount);

@@ -2,12 +2,15 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Dapper" Version="2.0.78" />
     <PackageReference Include="Rebus.MySql" Version="3.0.0-b5" />
+    <PackageReference Include="Rebus.PostgreSql" Version="7.2.0" />
+    <PackageReference Include="Rebus.SqlServer" Version="7.1.7" />
   </ItemGroup>
 
 </Project>

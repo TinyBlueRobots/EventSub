@@ -11,6 +11,6 @@ namespace EventSub
         Task CreateSubscriber(Subscriber subscriber);
         Task CreateSubscribersTable();
         Task<IEnumerable<Subscriber>> ReadSubscribers();
-        Task<Subscriber> ReadSubscriber(string name);
+        Task<Subscriber?> ReadSubscriber(string name);
     }
 }

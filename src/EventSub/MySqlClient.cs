@@ -85,7 +85,7 @@ namespace EventSub
             }
         }
 
-        public async Task<Subscriber> ReadSubscriber(string name)
+        public async Task<Subscriber?> ReadSubscriber(string name)
         {
             using (var connection = new MySqlConnection(connectionString))
             {

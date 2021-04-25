@@ -6,8 +6,6 @@ using Rebus.Activation;
 using Rebus.Bus;
 using Rebus.Config;
 using Rebus.Retry.Simple;
-using System.Linq;
-using System.Net.Http;
 
 namespace EventSub
 {
@@ -15,7 +13,7 @@ namespace EventSub
     {
         internal static ConcurrentDictionary<string, (Subscriber, List<(string, IBus)>)> Subscribers = new ConcurrentDictionary<string, (Subscriber, List<(string, IBus)>)>();
 
-        internal delegate Task Publish(string topic, object eventMessage, IDictionary<string, string> optionalHeaders = null);
+        internal delegate Task Publish(string topic, object eventMessage, IDictionary<string, string>? optionalHeaders = null);
 
         internal static async Task DeleteSubscriber(string name)
         {
@@ -42,6 +40,18 @@ namespace EventSub
                             .Transport(config => config.UseMySql(new MySqlTransportOptions(database.ConnectionString), "Publisher"))
                             .Subscriptions(config => config.StoreInMySql(database.ConnectionString, "Subscriptions", true));
                     break;
+                case DatabaseType.SqlServer:
+                    configurer =
+                        configurer
+                            .Transport(config => config.UseSqlServer(new SqlServerTransportOptions(database.ConnectionString), "Publisher"))
+                            .Subscriptions(config => config.StoreInSqlServer(database.ConnectionString, "Subscriptions", true));
+                    break;
+                case DatabaseType.PostgreSql:
+                    configurer =
+                        configurer
+                            .Transport(config => config.UsePostgreSql(database.ConnectionString, "Publisher", "Publisher"))
+                            .Subscriptions(config => config.StoreInPostgres(database.ConnectionString, "Subscriptions", true));
+                    break;
                 default:
                     throw new System.ArgumentException("Unhandled DatabaseConfig");
             }
@@ -64,6 +74,18 @@ namespace EventSub
                                 configurer
                                     .Transport(config => config.UseMySql(new MySqlTransportOptions(database.ConnectionString), subscriber.Name))
                                     .Subscriptions(config => config.StoreInMySql(database.ConnectionString, "Subscriptions", true));
+                            break;
+                        case DatabaseType.SqlServer:
+                            configurer =
+                                configurer
+                                    .Transport(config => config.UseSqlServer(new SqlServerTransportOptions(database.ConnectionString), subscriber.Name))
+                                    .Subscriptions(config => config.StoreInSqlServer(database.ConnectionString, "Subscriptions", true));
+                            break;
+                        case DatabaseType.PostgreSql:
+                            configurer =
+                                configurer
+                                    .Transport(config => config.UsePostgreSql(database.ConnectionString, subscriber.Name, subscriber.Name))
+                                    .Subscriptions(config => config.StoreInPostgres(database.ConnectionString, "Subscriptions", true));
                             break;
                         default:
                             throw new System.ArgumentException("Unhandled DatabaseConfig");
