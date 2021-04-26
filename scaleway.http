@@ -1,31 +1,27 @@
-@host =  http://localhost
-@subscriberName = mysubscriber
-@apiKey = myapikey
+# @host =  http://localhost
+@host = https://tinybluerobots2tgvdqr0-eventsub.functions.fnc.fr-par.scw.cloud
+# @host = 163.172.174.5
+@subscriberName = test1
+@apiKey = C?AAMe8MB5&i
 
 ### Create subscriber
 POST {{host}}/subscribers
 X-API-KEY: {{apiKey}}
 
 { "name": "{{subscriberName}}",
-  "types": ["type1"],
-  "maxParallelism": null,
-  "numberOfWorkers": null,
-  "retryIntervals": [1, 2, 4],
+  "types": ["type1", "type2"],
+  "retryIntervals": [10, 10],
   "url":"https://endt2nbwxnhqy62.m.pipedream.net" }
 
 ### Send event
 POST {{host}}
 X-API-KEY: {{apiKey}}
 
-{ "type": "type1",
-  "data": {"name":"dave2"} }
+{ "type": "type2",
+  "data": {"name":"jon"} }
 
 ### Get all subscribers
 GET {{host}}/subscribers
-X-API-KEY: {{apiKey}}
-
-### Get subscriber
-GET {{host}}/subscribers/{{subscriberName}}
 X-API-KEY: {{apiKey}}
 
 ### Delete subscriber
