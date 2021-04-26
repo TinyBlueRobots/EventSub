@@ -6,21 +6,14 @@ using NUnit.Framework;
 
 namespace Tests
 {
-    public class MySql
+    public class test_all_endpoints
     {
-        static IEnumerable<TestApi> TestApis
-        {
-            get
-            {
-                yield return TestApi.MySql();
-                yield return TestApi.SqlServer();
-                yield return TestApi.PostgreSql();
-            }
-        }
+        static IEnumerable<TestApi> TestApis => new[] { TestApi.MySql(), TestApi.SqlServer(), TestApi.PostgreSql() };
+
         [TestCaseSource(nameof(TestApis))]
-        public async Task create_send_delete(TestApi testApi)
+        public async Task all_endpoints_work(TestApi testApi)
         {
-            var subscriber = new Subscriber(nameof(MySql).ToLower(), new[] { "test" }, testApi.Handler.Url, null, null, null);
+            var subscriber = new Subscriber("test", new[] { "test" }, testApi.Handler.Url, null, null, null);
             var subscriberJson = JsonConvert.SerializeObject(subscriber);
 
             //create subscriber
@@ -31,6 +24,11 @@ namespace Tests
             response = await testApi.GetSubscriber(subscriber.Name);
             var actualSubscriberJson = await response.Content.ReadAsStringAsync();
             var actualSubscriber = JsonConvert.DeserializeObject<Subscriber>(actualSubscriberJson);
+            Assert.IsTrue(JToken.DeepEquals(JToken.FromObject(subscriber), JToken.FromObject(actualSubscriber)));
+
+            //read subscribers
+            var actualSubscribersJson = await testApi.GetSubscribers();
+            actualSubscriber = JsonConvert.DeserializeObject<Subscriber[]>(actualSubscribersJson)[0];
             Assert.IsTrue(JToken.DeepEquals(JToken.FromObject(subscriber), JToken.FromObject(actualSubscriber)));
 
             //send message
