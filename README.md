@@ -12,7 +12,7 @@ There's an example host in `./src/Web`, you will need to set the following envir
 `startLocal.sh` shows an example of running the service against a local Docker instance of Postgres.\
 `docker.sh` shows how to start an instance of each supported DB.
 
-Alternatively, use the docker image:
+Alternatively, use the docker image:\
 `docker run -e "DATABASE=PostgreSql" -e "APIKEY=myapikey" -e "CONNECTIONSTRING=Server=host.docker.internal;Port=5432;Database=test;User Id=postgres;Password=password;maximum pool size=30" -p 80:80 --name eventsub tinybluerobots/eventsub`
 
 
