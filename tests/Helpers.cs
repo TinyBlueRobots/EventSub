@@ -15,7 +15,7 @@ namespace Tests
 {
     record Subscriber(string Name, string[] Types, string Uri, int[] RetryIntervals, int? MaxParallelism, int? NumberOfWorkers);
 
-    class TestApi : IDisposable
+    public class TestApi : IDisposable
     {
         const string MySqlConnectionString = "Server=localhost;Database=test;Uid=root;Pwd=password;IgnoreCommandTransaction=true;Allow User Variables=true";
         const string SqlServerConnectionString = "Server=localhost;Initial Catalog=test;Persist Security Info=False;User ID=sa;Password=P@55w0rd";

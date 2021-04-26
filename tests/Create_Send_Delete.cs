@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -5,13 +6,21 @@ using NUnit.Framework;
 
 namespace Tests
 {
-    public class SqlServer
+    public class MySql
     {
-        [Test]
-        public async Task create_send_delete()
+        static IEnumerable<TestApi> TestApis
         {
-            var testApi = TestApi.SqlServer();
-            var subscriber = new Subscriber(nameof(SqlServer).ToLower(), new[] { "test" }, testApi.Handler.Url, null, null, null);
+            get
+            {
+                yield return TestApi.MySql();
+                yield return TestApi.SqlServer();
+                yield return TestApi.PostgreSql();
+            }
+        }
+        [TestCaseSource(nameof(TestApis))]
+        public async Task create_send_delete(TestApi testApi)
+        {
+            var subscriber = new Subscriber(nameof(MySql).ToLower(), new[] { "test" }, testApi.Handler.Url, null, null, null);
             var subscriberJson = JsonConvert.SerializeObject(subscriber);
 
             //create subscriber
