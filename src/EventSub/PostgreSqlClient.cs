@@ -37,16 +37,11 @@ namespace EventSub
         {
             using (var connection = new NpgsqlConnection(connectionString))
             {
-                var subscriberExists = await connection.ExecuteAsync($"SELECT COUNT(*) FROM Subscribers WHERE Name='{name}'");
-                if (subscriberExists != 0)
-                {
-                    var messageCountSql = $"SELECT COUNT(*) AS Count FROM messages WHERE recipient='{name.ToLower()}'";
-                    var deadLetterCountSql = $"SELECT COUNT(*) AS Count FROM messages WHERE recipient='{name.ToLower()}_deadletter'";
-                    var messageCount = await connection.ExecuteAsync(messageCountSql);
-                    var deadLetterCount = await connection.ExecuteAsync(deadLetterCountSql);
-                    return (messageCount, deadLetterCount);
-                }
-                else { return (0, 0); }
+                var messageCountSql = $"SELECT COUNT(*) FROM messages WHERE recipient='{name.ToLower()}'";
+                var deadLetterCountSql = $"SELECT COUNT(*) FROM messages WHERE recipient='{name.ToLower()}_deadletter'";
+                var messageCount = await connection.ExecuteScalarAsync<int>(messageCountSql);
+                var deadLetterCount = await connection.ExecuteScalarAsync<int>(deadLetterCountSql);
+                return (Math.Max(messageCount, 0), Math.Max(deadLetterCount, 0));
             }
         }
 
@@ -62,7 +57,7 @@ namespace EventSub
                     var messageCountResults = await connection.QueryAsync(messageCountSql);
                     var deadLetterCountResults = await connection.QueryAsync(deadLetterCountSql);
                     var deadLetterCounts = deadLetterCountResults.ToDictionary(result => result.name, result => result.count);
-                    return messageCountResults.ToDictionary(messageCount => (string)messageCount.name, messageCount => (Math.Max (int)messageCount.count, (int)deadLetterCounts[messageCount.name]));
+                    return messageCountResults.ToDictionary(messageCount => (string)messageCount.name, messageCount => (Math.Max((int)messageCount.count, 0), Math.Max((int)deadLetterCounts[messageCount.name], 0)));
                 }
                 else { return new Dictionary<string, (int, int)>(); }
             }

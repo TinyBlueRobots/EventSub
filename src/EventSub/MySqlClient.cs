@@ -36,13 +36,13 @@ namespace EventSub
         {
             using (var connection = new MySqlConnection(connectionString))
             {
-                var subscriberExists = await connection.ExecuteAsync($"SELECT COUNT(*) FROM Subscribers WHERE Name='{name}'");
+                var subscriberExists = await connection.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM Subscribers WHERE Name='{name}'");
                 if (subscriberExists != 0)
                 {
-                    var messageCountSql = $"SELECT COUNT(*) AS Count FROM `{name}`";
-                    var deadLetterCountSql = $"SELECT COUNT(*) AS Count FROM `{name}_deadletter`;";
-                    var messageCount = await connection.ExecuteAsync(messageCountSql);
-                    var deadLetterCount = await connection.ExecuteAsync(deadLetterCountSql);
+                    var messageCountSql = $"SELECT COUNT(*) FROM `{name}`";
+                    var deadLetterCountSql = $"SELECT COUNT(*) FROM `{name}_deadletter`;";
+                    var messageCount = await connection.ExecuteScalarAsync<int>(messageCountSql);
+                    var deadLetterCount = await connection.ExecuteScalarAsync<int>(deadLetterCountSql);
                     return (messageCount, deadLetterCount);
                 }
                 else { return (0, 0); }
