@@ -14,20 +14,14 @@ namespace EventSub
 {
     public static class IWebHostBuilderExtensions
     {
-        static ISqlClient CreateSqlClient(Database database)
-        {
-            switch (database.Type)
+        static ISqlClient CreateSqlClient(Database database) =>
+            database.Type switch
             {
-                case DatabaseType.MySql:
-                    return new MySqlClient(database.ConnectionString);
-                case DatabaseType.SqlServer:
-                    return new SqlServerClient(database.ConnectionString);
-                case DatabaseType.PostgreSql:
-                    return new PostgreSqlClient(database.ConnectionString);
-                default:
-                    throw new System.ArgumentException("Unhandled DatabaseConfig");
-            }
-        }
+                DatabaseType.MySql => new MySqlClient(database.ConnectionString),
+                DatabaseType.SqlServer => new SqlServerClient(database.ConnectionString),
+                DatabaseType.PostgreSql => new PostgreSqlClient(database.ConnectionString),
+                _ => throw new System.ArgumentException("Unhandled Database")
+            };
 
         static async Task GetSubscribers(Database database, HttpContext ctx)
         {
@@ -45,7 +39,7 @@ namespace EventSub
                     subscriber.Name,
                     subscriber.NumberOfWorkers,
                     subscriber.Types,
-                    subscriber.Uri,
+                    subscriber.Url,
                     MessageCount = activeMessageCount,
                     DeadLetterCount = deadLetterMessageCount
                 });
@@ -70,7 +64,7 @@ namespace EventSub
                         subscriber.Name,
                         subscriber.NumberOfWorkers,
                         subscriber.Types,
-                        subscriber.Uri,
+                        subscriber.Url,
                         MessageCount = activeMessageCount,
                         DeadLetterCount = deadLetterMessageCount
                     };
@@ -107,7 +101,7 @@ namespace EventSub
 
         static async Task<bool> TryCreateSubscriber(Database database, Subscriber subscriber)
         {
-            if (subscriber.Name is null || !Uri.IsWellFormedUriString(subscriber.Uri, UriKind.Absolute))
+            if (subscriber.Name is null || !Uri.IsWellFormedUriString(subscriber.Url, UriKind.Absolute))
             {
                 throw new JsonException();
             }
@@ -124,7 +118,7 @@ namespace EventSub
           subscriber.Name is not null
           && Regex.IsMatch(subscriber.Name, "^[a-z0-9]{1,128}$")
           && subscriber.Types.Length > 0
-          && Uri.IsWellFormedUriString(subscriber.Uri, UriKind.Absolute);
+          && Uri.IsWellFormedUriString(subscriber.Url, UriKind.Absolute);
 
         static async Task CreateSubscriber(Database database, HttpContext ctx)
         {

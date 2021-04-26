@@ -15,31 +15,23 @@ namespace Web
             {
                 throw new ArgumentException("Empty EnvVar APIKEY");
             }
-
             var connectionString = Environment.GetEnvironmentVariable("CONNECTIONSTRING");
-            Database database;
-            switch (Environment.GetEnvironmentVariable("DATABASE"))
-            {
-                case nameof(Database.MySql):
-                    database = Database.MySql(connectionString);
-                    break;
-                case nameof(Database.SqlServer):
-                    database = Database.SqlServer(connectionString);
-                    break;
-                case nameof(Database.PostgreSql):
-                    database = Database.PostgreSql(connectionString);
-                    break;
-                default:
-                    throw new ArgumentException("Unknown EnvVar DATABASE");
-            }
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
+            var database =
+                Environment.GetEnvironmentVariable("DATABASE") switch
                 {
-                    webBuilder.UseEventSub(database, apiKey);
-                    webBuilder.UseUrls(url);
-                })
-                .Build()
-                .Run();
+                    nameof(Database.MySql) => Database.MySql(connectionString),
+                    nameof(Database.SqlServer) => Database.SqlServer(connectionString),
+                    nameof(Database.PostgreSql) => Database.PostgreSql(connectionString),
+                    _ => throw new ArgumentException("Unknown EnvVar DATABASE")
+                };
+            Host.CreateDefaultBuilder(args)
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.UseEventSub(database, apiKey);
+                webBuilder.UseUrls(url);
+            })
+            .Build()
+            .Run();
         }
     }
 }

@@ -31,29 +31,24 @@ namespace EventSub
         internal static Publish CreatePublisher(Database database)
         {
             var configurer = Configure.With(new BuiltinHandlerActivator());
-            switch (database.Type)
-            {
-                case DatabaseType.MySql:
-                    configurer =
-                        configurer
-                            .Transport(config => config.UseMySql(new MySqlTransportOptions(database.ConnectionString), "Publisher"))
-                            .Subscriptions(config => config.StoreInMySql(database.ConnectionString, "Subscriptions", true));
-                    break;
-                case DatabaseType.SqlServer:
-                    configurer =
-                        configurer
-                            .Transport(config => config.UseSqlServer(new SqlServerTransportOptions(database.ConnectionString), "Publisher"))
-                            .Subscriptions(config => config.StoreInSqlServer(database.ConnectionString, "Subscriptions", true));
-                    break;
-                case DatabaseType.PostgreSql:
-                    configurer =
-                        configurer
-                            .Transport(config => config.UsePostgreSql(database.ConnectionString, "Messages", "Publisher"))
-                            .Subscriptions(config => config.StoreInPostgres(database.ConnectionString, "Subscriptions", true));
-                    break;
-                default:
-                    throw new System.ArgumentException("Unhandled DatabaseConfig");
-            }
+            configurer =
+                database.Type switch
+                {
+                    DatabaseType.MySql =>
+                            configurer
+                                .Transport(config => config.UseMySql(new MySqlTransportOptions(database.ConnectionString), "Publisher"))
+                                .Subscriptions(config => config.StoreInMySql(database.ConnectionString, "Subscriptions", true)),
+                    DatabaseType.SqlServer =>
+                            configurer
+                                .Transport(config => config.UseSqlServer(new SqlServerTransportOptions(database.ConnectionString), "Publisher"))
+                                .Subscriptions(config => config.StoreInSqlServer(database.ConnectionString, "Subscriptions", true)),
+                    DatabaseType.PostgreSql =>
+                            configurer
+                                .Transport(config => config.UsePostgreSql(database.ConnectionString, "Messages", "Publisher"))
+                                .Subscriptions(config => config.StoreInPostgres(database.ConnectionString, "Subscriptions", true)),
+                    _ =>
+                        throw new System.ArgumentException("Unhandled Database")
+                };
             return configurer.Start().Advanced.Topics.Publish;
         }
 
@@ -95,7 +90,7 @@ namespace EventSub
                             .Options(config => config.SetMaxParallelism(subscriber.MaxParallelism ?? Options.DefaultMaxParallelism))
                             .Start();
                     bus.Advanced.Workers.SetNumberOfWorkers(0);
-                    var handler = new MessageHandler(subscriber.RetryIntervals, subscriber.Name, new Uri(subscriber.Uri), bus);
+                    var handler = new MessageHandler(subscriber.RetryIntervals, subscriber.Name, new Uri(subscriber.Url), bus);
                     activator.Register(() => handler);
                     bus.Advanced.Workers.SetNumberOfWorkers(subscriber.NumberOfWorkers ?? Options.DefaultNumberOfWorkers);
                     await bus.Advanced.Topics.Subscribe(type);

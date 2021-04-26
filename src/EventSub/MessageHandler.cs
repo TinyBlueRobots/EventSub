@@ -16,21 +16,21 @@ namespace EventSub
         static readonly HttpClient httpClient = new HttpClient();
         readonly int[] retryIntervals;
         readonly string name;
-        readonly Uri uri;
+        readonly Uri url;
         readonly IBus bus;
 
-        public MessageHandler(int[] retryIntervals, string name, Uri uri, IBus bus)
+        public MessageHandler(int[] retryIntervals, string name, Uri url, IBus bus)
         {
             this.retryIntervals = retryIntervals ?? new int[0];
             this.name = name;
-            this.uri = uri;
+            this.url = url;
             this.bus = bus;
         }
 
         public async Task Handle(Message message)
         {
             var json = JsonConvert.SerializeObject(message.Data);
-            var response = await httpClient.PostAsync(uri, new StringContent(json, Encoding.UTF8, "application/json"));
+            var response = await httpClient.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
             response.EnsureSuccessStatusCode();
         }
 
