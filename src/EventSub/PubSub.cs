@@ -48,7 +48,7 @@ namespace EventSub
                 case DatabaseType.PostgreSql:
                     configurer =
                         configurer
-                            .Transport(config => config.UsePostgreSql(database.ConnectionString, "Publisher", "Publisher"))
+                            .Transport(config => config.UsePostgreSql(database.ConnectionString, "Messages", "Publisher"))
                             .Subscriptions(config => config.StoreInPostgres(database.ConnectionString, "Subscriptions", true));
                     break;
                 default:
@@ -83,7 +83,7 @@ namespace EventSub
                         case DatabaseType.PostgreSql:
                             configurer =
                                 configurer
-                                    .Transport(config => config.UsePostgreSql(database.ConnectionString, subscriber.Name, subscriber.Name))
+                                    .Transport(config => config.UsePostgreSql(database.ConnectionString, "Messages", subscriber.Name))
                                     .Subscriptions(config => config.StoreInPostgres(database.ConnectionString, "Subscriptions", true));
                             break;
                         default:

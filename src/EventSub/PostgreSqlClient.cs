@@ -4,6 +4,7 @@ using Dapper;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Npgsql;
+using System;
 
 namespace EventSub
 {
@@ -28,7 +29,7 @@ namespace EventSub
         {
             using (var connection = new NpgsqlConnection(connectionString))
             {
-                await connection.ExecuteAsync($"DROP TABLE IF EXISTS \"{name.ToLower()}\";DROP TABLE IF EXISTS \"{name.ToLower()}_deadletter\";DELETE FROM Subscribers WHERE Name='{name}'");
+                await connection.ExecuteAsync($"DELETE FROM messages WHERE recipient='{name.ToLower()}' or recipient='{name.ToLower()}_deadletter';DELETE FROM Subscribers WHERE Name='{name}'");
             }
         }
 
@@ -39,8 +40,8 @@ namespace EventSub
                 var subscriberExists = await connection.ExecuteAsync($"SELECT COUNT(*) FROM Subscribers WHERE Name='{name}'");
                 if (subscriberExists != 0)
                 {
-                    var messageCountSql = $"SELECT COUNT(*) AS Count FROM \"{name.ToLower()}\"";
-                    var deadLetterCountSql = $"SELECT COUNT(*) AS Count FROM \"{name.ToLower()}_deadletter\";";
+                    var messageCountSql = $"SELECT COUNT(*) AS Count FROM messages WHERE recipient='{name.ToLower()}'";
+                    var deadLetterCountSql = $"SELECT COUNT(*) AS Count FROM messages WHERE recipient='{name.ToLower()}_deadletter'";
                     var messageCount = await connection.ExecuteAsync(messageCountSql);
                     var deadLetterCount = await connection.ExecuteAsync(deadLetterCountSql);
                     return (messageCount, deadLetterCount);
@@ -56,12 +57,12 @@ namespace EventSub
                 var subscriberNames = await connection.QueryAsync<string>("SELECT Name FROM Subscribers");
                 if (subscriberNames.Count() > 0)
                 {
-                    var messageCountSql = subscriberNames.Aggregate("", (sql, name) => sql + $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM \"{name.ToLower()}\";");
-                    var deadLetterCountSql = subscriberNames.Aggregate("", (sql, name) => sql + $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM \"{name.ToLower()}_deadletter\";");
+                    var messageCountSql = subscriberNames.Aggregate("", (sql, name) => sql + $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM messages WHERE recipient='{name.ToLower()}';");
+                    var deadLetterCountSql = subscriberNames.Aggregate("", (sql, name) => sql + $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM messages WHERE recipient='{name.ToLower()}_deadletter';");
                     var messageCountResults = await connection.QueryAsync(messageCountSql);
                     var deadLetterCountResults = await connection.QueryAsync(deadLetterCountSql);
-                    var deadLetterCounts = deadLetterCountResults.ToDictionary(result => result.Name, result => result.Count);
-                    return messageCountResults.ToDictionary(messageCount => (string)messageCount.Name, messageCount => ((int)messageCount.Count, (int)deadLetterCounts[messageCount.Name]));
+                    var deadLetterCounts = deadLetterCountResults.ToDictionary(result => result.name, result => result.count);
+                    return messageCountResults.ToDictionary(messageCount => (string)messageCount.name, messageCount => (Math.Max (int)messageCount.count, (int)deadLetterCounts[messageCount.name]));
                 }
                 else { return new Dictionary<string, (int, int)>(); }
             }

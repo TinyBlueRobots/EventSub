@@ -187,7 +187,7 @@ namespace EventSub
                    ctx.Response.StatusCode = 500;
                    var exceptionHandlerPathFeature =
                    ctx.Features.Get<IExceptionHandlerPathFeature>();
-                   await ctx.Response.WriteAsJsonAsync(exceptionHandlerPathFeature.Error);
+                   await ctx.Response.WriteAsJsonAsync(new { Message = exceptionHandlerPathFeature.Error.Message, StackTrace = exceptionHandlerPathFeature.Error.StackTrace });
                }));
                app.Use(async (ctx, next) =>
                {
