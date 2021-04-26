@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 
 namespace EventSub
 {
-    class MySqlClient : ISqlClient
+    class MySqlClient : IDbClient
     {
         string connectionString;
 

@@ -1,11 +1,11 @@
 # EventSub
-Azure Event Grid/AWS Eventbridge style ASP .NET service that stores messages in SQL and forwards them to a subscriber URL. It's built on top of the excellent [Rebus](https://github.com/rebus-org/Rebus) service bus and supports MySQL, SQL Server, and PostgreSQL.
+Azure Event Grid/AWS Eventbridge style ASP .NET service that stores messages in a database and forwards them to a subscriber URL. It's built on top of the excellent [Rebus](https://github.com/rebus-org/Rebus) service bus and currently supports MySQL, SQL Server, and PostgreSQL.
 
 ## Starting the service
 There's an example host in `./src/Web`, you will need to set the following environment variables:
 
-- `DATABASE` : The type of SQL server, either `MySql`, `SqlServer`, or `PostgreSql`
-- `CONNECTIONSTRING` : SQL connection string
+- `DATABASE` : The type of database, either `MySql`, `SqlServer`, or `PostgreSql`
+- `CONNECTIONSTRING` : DAtabase connection string
 - `APIKEY` : Api key provided either by query string value `apikey` or `X-API-KEY` header
 - `PORT`: An optional port to run the service on, defaults to 80
 

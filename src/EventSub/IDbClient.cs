@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace EventSub
 {
-    interface ISqlClient
+    interface IDbClient
     {
         Task<Dictionary<string, (int, int)>> GetMessageCounts();
         Task<(int, int)> GetMessageCount(string name);

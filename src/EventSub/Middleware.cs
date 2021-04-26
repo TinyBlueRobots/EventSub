@@ -14,7 +14,7 @@ namespace EventSub
 {
     public static class IWebHostBuilderExtensions
     {
-        static ISqlClient CreateSqlClient(Database database) =>
+        static IDbClient CreateSqlClient(Database database) =>
             database.Type switch
             {
                 DatabaseType.MySql => new MySqlClient(database.ConnectionString),
@@ -166,7 +166,7 @@ namespace EventSub
         public static IWebHostBuilder UseEventSub(this IWebHostBuilder builder, Database database, string apiKey)
         {
             var publish = PubSub.CreatePublisher(database);
-            ISqlClient sqlClient = CreateSqlClient(database);
+            IDbClient sqlClient = CreateSqlClient(database);
             sqlClient.CreateSubscribersTable().Wait();
             var subscribers = sqlClient.ReadSubscribers().Result;
             builder.ConfigureServices(services => services.AddRouting());

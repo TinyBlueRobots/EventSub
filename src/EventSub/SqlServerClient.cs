@@ -7,7 +7,7 @@ using Microsoft.Data.SqlClient;
 
 namespace EventSub
 {
-    class SqlServerClient : ISqlClient
+    class SqlServerClient : IDbClient
     {
         string connectionString;
 

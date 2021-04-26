@@ -8,7 +8,7 @@ using System;
 
 namespace EventSub
 {
-    class PostgreSqlClient : ISqlClient
+    class PostgreSqlClient : IDbClient
     {
         string connectionString;
 
