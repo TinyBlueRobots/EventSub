@@ -1,7 +1,22 @@
+
+[![NuGet Version](http://img.shields.io/nuget/v/EventSub.svg?style=flat)](https://www.nuget.org/packages/EventSub/)
+
 # EventSub
 Azure Event Grid/AWS Eventbridge style ASP .NET service that stores messages in a database and forwards them to a subscriber URL. It's built on top of the excellent [Rebus](https://github.com/rebus-org/Rebus) service bus and currently supports MySQL, SQL Server, and PostgreSQL.
 
-## Starting the service
+## Run docker container
+`docker run -e "DATABASE=PostgreSql" -e "APIKEY=myapikey" -e "CONNECTIONSTRING=Server=host.docker.internal;Port=5432;Database=test;User Id=postgres;Password=password;maximum pool size=30" -p 80:80 --name eventsub tinybluerobots/eventsub`
+
+## Run from code
+Install from nuget and call `UseEventSub` in your builder
+
+```
+Host.CreateDefaultBuilder(args)
+    .ConfigureWebHostDefaults(webBuilder => webBuilder.UseEventSub(Database.PostgreSql("connectionstring"), "apikey"))
+    .Build()
+    .Run()
+```
+
 There's an example host in `./src/Web`, you will need to set the following environment variables:
 
 - `DATABASE` : The type of database, either `MySql`, `SqlServer`, or `PostgreSql`
@@ -11,10 +26,6 @@ There's an example host in `./src/Web`, you will need to set the following envir
 
 `startLocal.sh` shows an example of running the service against a local Docker instance of Postgres.\
 `docker.sh` shows how to start an instance of each supported DB.
-
-Alternatively, use the docker image:\
-`docker run -e "DATABASE=PostgreSql" -e "APIKEY=myapikey" -e "CONNECTIONSTRING=Server=host.docker.internal;Port=5432;Database=test;User Id=postgres;Password=password;maximum pool size=30" -p 80:80 --name eventsub tinybluerobots/eventsub`
-
 
 ## Create a subscriber
 `POST` to `/subscribers`
