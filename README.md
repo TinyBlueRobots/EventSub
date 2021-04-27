@@ -5,7 +5,7 @@ Azure Event Grid/AWS Eventbridge style ASP .NET service that stores messages in 
 There's an example host in `./src/Web`, you will need to set the following environment variables:
 
 - `DATABASE` : The type of database, either `MySql`, `SqlServer`, or `PostgreSql`
-- `CONNECTIONSTRING` : DAtabase connection string
+- `CONNECTIONSTRING` : Database connection string
 - `APIKEY` : Api key provided either by query string value `apikey` or `X-API-KEY` header
 - `PORT`: An optional port to run the service on, defaults to 80
 
@@ -28,12 +28,12 @@ Alternatively, use the docker image:\
   ```
 
 `name` : lower case alphanumeric name\
-`types` : message types that the handler will accept\
+`types` : message types that the subscriber will accept, effectively a list of topics\
 `url` : URL of handler\
 `retryIntervals` : optional array of seconds between retry attempts before message is dead lettered\
-`maxParallelism` : optional value to set parallelism of delivery, useful for throttling\
+`maxParallelism` : optional value to set parallelism of delivery to a subscriber, useful for throttling\
 `numberOfWorkers` : optional value of worker threads\
-Checkout the [Rebus guide](https://github.com/rebus-org/Rebus/wiki/Workers-and-parallelism) on workers and parallelism for more information on the last two values.
+Check out the [Rebus guide](https://github.com/rebus-org/Rebus/wiki/Workers-and-parallelism) on workers and parallelism for more information on the last two values.
 
 ## Send a message
 `POST` to `/`
