@@ -61,29 +61,24 @@ namespace EventSub
                 {
                     var activator = new BuiltinHandlerActivator();
                     var configurer = Configure.With(activator);
-                    switch (database.Type)
-                    {
-                        case DatabaseType.MySql:
-                            configurer =
-                                configurer
-                                    .Transport(config => config.UseMySql(new MySqlTransportOptions(database.ConnectionString), subscriber.Name))
-                                    .Subscriptions(config => config.StoreInMySql(database.ConnectionString, "Subscriptions", true));
-                            break;
-                        case DatabaseType.SqlServer:
-                            configurer =
-                                configurer
-                                    .Transport(config => config.UseSqlServer(new SqlServerTransportOptions(database.ConnectionString), subscriber.Name))
-                                    .Subscriptions(config => config.StoreInSqlServer(database.ConnectionString, "Subscriptions", true));
-                            break;
-                        case DatabaseType.PostgreSql:
-                            configurer =
-                                configurer
-                                    .Transport(config => config.UsePostgreSql(database.ConnectionString, "Messages", subscriber.Name))
-                                    .Subscriptions(config => config.StoreInPostgres(database.ConnectionString, "Subscriptions", true));
-                            break;
-                        default:
-                            throw new System.ArgumentException("Unhandled DatabaseConfig");
-                    }
+                    configurer =
+                        database.Type switch
+                        {
+                            DatabaseType.MySql =>
+                                    configurer
+                                        .Transport(config => config.UseMySql(new MySqlTransportOptions(database.ConnectionString), subscriber.Name))
+                                        .Subscriptions(config => config.StoreInMySql(database.ConnectionString, "Subscriptions", true)),
+                            DatabaseType.SqlServer =>
+                                    configurer
+                                        .Transport(config => config.UseSqlServer(new SqlServerTransportOptions(database.ConnectionString), subscriber.Name))
+                                        .Subscriptions(config => config.StoreInSqlServer(database.ConnectionString, "Subscriptions", true)),
+                            DatabaseType.PostgreSql =>
+                                    configurer
+                                        .Transport(config => config.UsePostgreSql(database.ConnectionString, "Messages", subscriber.Name))
+                                        .Subscriptions(config => config.StoreInPostgres(database.ConnectionString, "Subscriptions", true)),
+                            _ =>
+                                throw new System.ArgumentException("Unhandled Database")
+                        };
                     var bus =
                         configurer
                             .Options(config => config.SimpleRetryStrategy($"{subscriber.Name}_deadletter", 1, secondLevelRetriesEnabled: true))
