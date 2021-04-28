@@ -4,12 +4,12 @@
     <TargetFramework>net5.0</TargetFramework>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
-    <Description>Event Grid/Eventbridge style ASP .NET service that will store messages in SQL and forward to a subscriber URL</Description>
+    <Description>Event Grid/Eventbridge style service that will store messages and forward to a subscriber URL</Description>
     <VersionPrefix>1.0.0</VersionPrefix>
     <Authors>Tiny Blue Robots</Authors>
     <AssemblyName>EventSub</AssemblyName>
     <PackageId>EventSub</PackageId>
-    <PackageTags>pub;sub;event</PackageTags>
+    <PackageTags>pub;sub;event;bus</PackageTags>
     <PackageProjectUrl>https://github.com/TinyBlueRobots/EventSub</PackageProjectUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>icon.png</PackageIcon>
