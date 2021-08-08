@@ -21,7 +21,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Dapper" Version="2.0.90" />
-    <PackageReference Include="Rebus.MySql" Version="3.0.0-b5" />
+    <PackageReference Include="Rebus.MySql" Version="3.0.0-b6" />
     <PackageReference Include="Rebus.PostgreSql" Version="7.2.0" />
     <PackageReference Include="Rebus.SqlServer" Version="7.1.7" />
     <None Include="../../icon.png" Pack="true" PackagePath="" />
