@@ -9,7 +9,6 @@ namespace Web
     {
         public static void Main(string[] args)
         {
-            var url = $"http://0.0.0.0:{Environment.GetEnvironmentVariable("PORT")}";
             var apiKey = Environment.GetEnvironmentVariable("APIKEY");
             if (String.IsNullOrWhiteSpace(apiKey))
             {
@@ -25,11 +24,7 @@ namespace Web
                     _ => throw new ArgumentException("Unknown EnvVar DATABASE")
                 };
             Host.CreateDefaultBuilder(args)
-            .ConfigureWebHostDefaults(webBuilder =>
-            {
-                webBuilder.UseEventSub(database, apiKey);
-                webBuilder.UseUrls(url);
-            })
+            .ConfigureWebHostDefaults(webBuilder => webBuilder.UseEventSub(database, apiKey))
             .Build()
             .Run();
         }

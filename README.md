@@ -22,7 +22,6 @@ There's an example host in `./src/Web`, you will need to set the following envir
 - `DATABASE` : The type of database, either `MySql`, `SqlServer`, or `PostgreSql`
 - `CONNECTIONSTRING` : Database connection string
 - `APIKEY` : Api key provided either by query string value `apikey` or `X-API-KEY` header
-- `PORT`: An optional port to run the service on, defaults to 80
 
 `startLocal.sh` shows an example of running the service against a local Docker instance of Postgres.\
 `docker.sh` shows how to start an instance of each supported DB.
