@@ -93,10 +93,6 @@ namespace EventSub
             {
                 ctx.Response.StatusCode = 400;
             }
-            catch (Exception)
-            {
-                throw;
-            }
         }
 
         static async Task<bool> TryCreateSubscriber(Database database, Subscriber subscriber)
@@ -115,8 +111,7 @@ namespace EventSub
         }
 
         static bool ValidateSubscriber(Subscriber subscriber) =>
-          subscriber.Name is not null
-          && Regex.IsMatch(subscriber.Name, "^[a-z0-9]{1,128}$")
+          Regex.IsMatch(subscriber.Name, "^[a-z0-9]{1,128}$")
           && subscriber.Types.Length > 0
           && Uri.IsWellFormedUriString(subscriber.Url, UriKind.Absolute);
 

@@ -1,20 +1,25 @@
 using System;
 using EventSub;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 
 namespace Web
 {
-    public class Program
+    public static class Program
     {
         public static void Main(string[] args)
         {
             var apiKey = Environment.GetEnvironmentVariable("APIKEY");
-            if (String.IsNullOrWhiteSpace(apiKey))
+            if (string.IsNullOrWhiteSpace(apiKey))
             {
                 throw new ArgumentException("Empty EnvVar APIKEY");
             }
+
             var connectionString = Environment.GetEnvironmentVariable("CONNECTIONSTRING");
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new ArgumentException("Empty EnvVar CONNECTIONSTRING");
+            }
+
             var database =
                 Environment.GetEnvironmentVariable("DATABASE") switch
                 {
@@ -24,9 +29,9 @@ namespace Web
                     _ => throw new ArgumentException("Unknown EnvVar DATABASE")
                 };
             Host.CreateDefaultBuilder(args)
-            .ConfigureWebHostDefaults(webBuilder => webBuilder.UseEventSub(database, apiKey))
-            .Build()
-            .Run();
+                .ConfigureWebHostDefaults(webBuilder => webBuilder.UseEventSub(database, apiKey))
+                .Build()
+                .Run();
         }
     }
 }

@@ -1,4 +1,4 @@
 namespace EventSub
 {
-    record Message(string Type, object Data) { }
+    record Message(string Type, object Data);
 }

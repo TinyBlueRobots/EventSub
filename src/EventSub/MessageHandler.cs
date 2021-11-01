@@ -13,16 +13,14 @@ namespace EventSub
 {
     class MessageHandler : IHandleMessages<Message>, IHandleMessages<IFailed<Message>>
     {
-        static readonly HttpClient httpClient = new HttpClient();
+        static readonly HttpClient httpClient = new();
         readonly int[] retryIntervals;
-        readonly string name;
         readonly Uri url;
         readonly IBus bus;
 
-        public MessageHandler(int[] retryIntervals, string name, Uri url, IBus bus)
+        public MessageHandler(int[] retryIntervals, Uri url, IBus bus)
         {
-            this.retryIntervals = retryIntervals ?? new int[0];
-            this.name = name;
+            this.retryIntervals = retryIntervals;
             this.url = url;
             this.bus = bus;
         }
@@ -38,14 +36,7 @@ namespace EventSub
         {
             message.Headers.TryGetValue(Headers.DeferCount, out var deferCountValue);
             int.TryParse(deferCountValue, out var deferCount);
-            if (deferCount < retryIntervals.Length)
-            {
-                return bus.Advanced.TransportMessage.Defer(TimeSpan.FromSeconds(retryIntervals[deferCount]));
-            }
-            else
-            {
-                return bus.Advanced.TransportMessage.Deadletter(message.ErrorDescription);
-            }
+            return deferCount < retryIntervals.Length ? bus.Advanced.TransportMessage.Defer(TimeSpan.FromSeconds(retryIntervals[deferCount])) : bus.Advanced.TransportMessage.Deadletter(message.ErrorDescription);
         }
     }
 }

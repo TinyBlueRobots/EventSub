@@ -11,8 +11,8 @@ namespace EventSub
     {
         Database(DatabaseType databaseType, string connectionString)
         {
-            this.Type = databaseType;
-            this.ConnectionString = connectionString;
+            Type = databaseType;
+            ConnectionString = connectionString;
         }
 
         internal string ConnectionString { get; }
