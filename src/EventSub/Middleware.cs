@@ -20,7 +20,7 @@ namespace EventSub
                 DatabaseType.MySql => new MySqlClient(database.ConnectionString),
                 DatabaseType.SqlServer => new SqlServerClient(database.ConnectionString),
                 DatabaseType.PostgreSql => new PostgreSqlClient(database.ConnectionString),
-                _ => throw new System.ArgumentException("Unhandled Database")
+                _ => throw new ArgumentException("Unhandled Database")
             };
 
         static async Task GetSubscribers(Database database, HttpContext ctx)
@@ -174,16 +174,15 @@ namespace EventSub
                app.UseExceptionHandler(errorApp => errorApp.Run(async ctx =>
                {
                    ctx.Response.StatusCode = 500;
-                   var exceptionHandlerPathFeature =
-                   ctx.Features.Get<IExceptionHandlerPathFeature>();
-                   await ctx.Response.WriteAsJsonAsync(new { Message = exceptionHandlerPathFeature.Error.Message, StackTrace = exceptionHandlerPathFeature.Error.StackTrace });
+                   var exceptionHandlerPathFeature = ctx.Features.Get<IExceptionHandlerPathFeature>();
+                   await ctx.Response.WriteAsJsonAsync(new { exceptionHandlerPathFeature!.Error.Message, exceptionHandlerPathFeature.Error.StackTrace });
                }));
                app.Use(async (ctx, next) =>
                {
                    var apiKeyHeader = ctx.Request.Headers["X-API-KEY"].ToString();
                    var apiKeyQuery = ctx.Request.Query["apikey"].ToString();
                    var providedApiKey = string.IsNullOrEmpty(apiKeyHeader) ? apiKeyQuery : apiKeyHeader;
-                   var authorized = string.IsNullOrEmpty(apiKey) ? false : apiKey == providedApiKey;
+                   var authorized = !string.IsNullOrEmpty(apiKey) && apiKey == providedApiKey;
                    if (authorized)
                    {
                        await next();
