@@ -1,37 +1,35 @@
-namespace EventSub
+namespace EventSub;
+
+enum DatabaseType
 {
-    enum DatabaseType
+    MySql,
+    SqlServer,
+    PostgreSql
+}
+
+public class Database
+{
+    Database(DatabaseType databaseType, string connectionString)
     {
-        MySql,
-        SqlServer,
-        PostgreSql
+        Type = databaseType;
+        ConnectionString = connectionString;
     }
 
-    public class Database
+    internal string ConnectionString { get; }
+    internal DatabaseType Type { get; }
+
+    public static Database MySql(string connectionString)
     {
-        Database(DatabaseType databaseType, string connectionString)
-        {
-            Type = databaseType;
-            ConnectionString = connectionString;
-        }
-
-        internal string ConnectionString { get; }
-        internal DatabaseType Type { get; }
-
-        public static Database MySql(string connectionString)
-        {
-            return new Database(DatabaseType.MySql, connectionString);
-        }
-
-        public static Database SqlServer(string connectionString)
-        {
-            return new Database(DatabaseType.SqlServer, connectionString);
-        }
-
-        public static Database PostgreSql(string connectionString)
-        {
-            return new Database(DatabaseType.PostgreSql, connectionString);
-        }
+        return new Database(DatabaseType.MySql, connectionString);
     }
 
+    public static Database SqlServer(string connectionString)
+    {
+        return new Database(DatabaseType.SqlServer, connectionString);
+    }
+
+    public static Database PostgreSql(string connectionString)
+    {
+        return new Database(DatabaseType.PostgreSql, connectionString);
+    }
 }
