@@ -22,7 +22,7 @@ public class TestApi : IDisposable
         "Server=localhost;Database=test;Uid=root;Pwd=password;IgnoreCommandTransaction=true;Allow User Variables=true";
 
     const string SqlServerConnectionString =
-        "Server=localhost;Initial Catalog=test;Persist Security Info=False;User ID=sa;Password=P@55w0rd";
+        "Server=localhost;Initial Catalog=test;Persist Security Info=False;User ID=sa;Password=P@55w0rd;TrustServerCertificate=True";
 
     const string PostgreSqlConnectionString =
         "Server=localhost;Port=5432;Database=test;User Id=postgres;Password=password";

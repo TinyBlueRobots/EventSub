@@ -14,30 +14,30 @@ namespace EventSub;
 class MessageHandler : IHandleMessages<Message>, IHandleMessages<IFailed<Message>>
 {
     static readonly HttpClient httpClient = new();
-    readonly IBus bus;
-    readonly int[] retryIntervals;
-    readonly Uri url;
+    readonly IBus _bus;
+    readonly int[] _retryIntervals;
+    readonly Uri _url;
 
     public MessageHandler(int[] retryIntervals, Uri url, IBus bus)
     {
-        this.retryIntervals = retryIntervals;
-        this.url = url;
-        this.bus = bus;
+        _retryIntervals = retryIntervals;
+        _url = url;
+        _bus = bus;
     }
 
     public Task Handle(IFailed<Message> message)
     {
         message.Headers.TryGetValue(Headers.DeferCount, out var deferCountValue);
         int.TryParse(deferCountValue, out var deferCount);
-        return deferCount < retryIntervals.Length
-            ? bus.Advanced.TransportMessage.Defer(TimeSpan.FromSeconds(retryIntervals[deferCount]))
-            : bus.Advanced.TransportMessage.Deadletter(message.ErrorDescription);
+        return deferCount < _retryIntervals.Length
+            ? _bus.Advanced.TransportMessage.Defer(TimeSpan.FromSeconds(_retryIntervals[deferCount]))
+            : _bus.Advanced.TransportMessage.Deadletter(message.ErrorDescription);
     }
 
     public async Task Handle(Message message)
     {
         var json = JsonConvert.SerializeObject(message.Data);
-        var response = await httpClient.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
+        var response = await httpClient.PostAsync(_url, new StringContent(json, Encoding.UTF8, "application/json"));
         response.EnsureSuccessStatusCode();
     }
 }

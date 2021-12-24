@@ -9,30 +9,30 @@ namespace EventSub;
 
 class SqlServerClient : IDbClient
 {
-    readonly string connectionString;
+    readonly string _connectionString;
 
     public SqlServerClient(string connectionString)
     {
-        this.connectionString = connectionString;
+        this._connectionString = connectionString;
     }
 
     public async Task CreateSubscribersTable()
     {
-        await using var connection = new SqlConnection(connectionString);
+        await using var connection = new SqlConnection(_connectionString);
         await connection.ExecuteAsync(
             "IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Subscribers') CREATE TABLE Subscribers (Name VARCHAR(128), Subscriber TEXT, CONSTRAINT PK_Subscribers PRIMARY KEY (Name))");
     }
 
     public async Task DeleteSubscriber(string name)
     {
-        await using var connection = new SqlConnection(connectionString);
+        await using var connection = new SqlConnection(_connectionString);
         await connection.ExecuteAsync(
             $"DROP TABLE [{name}];DROP TABLE [{name}_deadletter];DELETE FROM Subscribers WHERE Name='{name}'");
     }
 
     public async Task<(int, int)> GetMessageCount(string name)
     {
-        await using var connection = new SqlConnection(connectionString);
+        await using var connection = new SqlConnection(_connectionString);
         var subscriberExists =
             await connection.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM Subscribers WHERE Name='{name}'");
         if (subscriberExists != 0)
@@ -49,7 +49,7 @@ class SqlServerClient : IDbClient
 
     public async Task<Dictionary<string, (int, int)>> GetMessageCounts()
     {
-        await using var connection = new SqlConnection(connectionString);
+        await using var connection = new SqlConnection(_connectionString);
         var subscriberNames = await connection.QueryAsync<string>("SELECT Name FROM Subscribers")
             .ContinueWith(t => t.Result.ToArray());
         switch (subscriberNames)
@@ -73,14 +73,14 @@ class SqlServerClient : IDbClient
 
     public async Task<IEnumerable<Subscriber>> ReadSubscribers()
     {
-        await using var connection = new SqlConnection(connectionString);
+        await using var connection = new SqlConnection(_connectionString);
         var json = await connection.QueryAsync<string>("SELECT Subscriber FROM Subscribers");
         return json.Select(JsonConvert.DeserializeObject<Subscriber>);
     }
 
     public async Task CreateSubscriber(Subscriber subscriber)
     {
-        await using var connection = new SqlConnection(connectionString);
+        await using var connection = new SqlConnection(_connectionString);
         var json = JsonConvert.SerializeObject(subscriber);
         await connection.ExecuteAsync(
             $"IF NOT EXISTS (SELECT * FROM Subscribers WHERE Name='{subscriber.Name}') INSERT INTO Subscribers (Name, Subscriber) VALUES ('{subscriber.Name}','{json}')");
@@ -88,7 +88,7 @@ class SqlServerClient : IDbClient
 
     public async Task<Subscriber?> ReadSubscriber(string name)
     {
-        await using var connection = new SqlConnection(connectionString);
+        await using var connection = new SqlConnection(_connectionString);
         var json = await connection.QueryFirstOrDefaultAsync<string>(
             $"SELECT Subscriber FROM Subscribers WHERE Name='{name}'");
         return json is null ? null : JsonConvert.DeserializeObject<Subscriber>(json);

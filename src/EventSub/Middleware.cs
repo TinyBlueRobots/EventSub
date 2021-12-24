@@ -89,7 +89,7 @@ public static class WebHostBuilderExtensions
         try
         {
             var json = await new StreamReader(ctx.Request.Body).ReadToEndAsync();
-            var message = JsonConvert.DeserializeObject<Message>(json);
+            var message = JsonConvert.DeserializeObject<Message>(json) ?? throw new JsonException();
             await publish(message.Type, message);
         }
         catch (JsonException)
@@ -119,7 +119,7 @@ public static class WebHostBuilderExtensions
         try
         {
             var json = await new StreamReader(ctx.Request.Body).ReadToEndAsync();
-            var subscriber = JsonConvert.DeserializeObject<Subscriber>(json);
+            var subscriber = JsonConvert.DeserializeObject<Subscriber>(json) ?? throw new JsonException();
             if (ValidateSubscriber(subscriber))
             {
                 if (!await TryCreateSubscriber(database, subscriber)) ctx.Response.StatusCode = 409;
