@@ -13,35 +13,56 @@ public class test_all_endpoints
     [TestCaseSource(nameof(TestApis))]
     public async Task all_endpoints_work(TestApi testApi)
     {
-        var subscriber = new Subscriber("test", new[] { "test" }, testApi.Handler.Url, null, null, null);
-        var subscriberJson = JsonConvert.SerializeObject(subscriber);
+        var subscriber1 = new Subscriber("test1", new[] { "test" }, testApi.Handler1.Url, null, null, null);
+        var subscriber1Json = JsonConvert.SerializeObject(subscriber1);
 
-        //create subscriber
-        var response = await testApi.CreateSubscriber(subscriberJson);
+        var subscriber2 = new Subscriber("test2", new[] { "test" }, testApi.Handler2.Url, null, null, null);
+        var subscriber2Json = JsonConvert.SerializeObject(subscriber2);
+
+        //create subscriber1
+        var response = await testApi.CreateSubscriber(subscriber1Json);
         Assert.AreEqual(200, (int)response.StatusCode);
 
-        //read subscriber
-        response = await testApi.GetSubscriber(subscriber.Name);
+        //create subscriber2
+        response = await testApi.CreateSubscriber(subscriber2Json);
+        Assert.AreEqual(200, (int)response.StatusCode);
+
+        //read subscriber1
+        response = await testApi.GetSubscriber(subscriber1.Name);
         var actualSubscriberJson = await response.Content.ReadAsStringAsync();
         var actualSubscriber = JsonConvert.DeserializeObject<Subscriber>(actualSubscriberJson);
-        Assert.IsTrue(JToken.DeepEquals(JToken.FromObject(subscriber), JToken.FromObject(actualSubscriber)));
+        Assert.IsTrue(JToken.DeepEquals(JToken.FromObject(subscriber1), JToken.FromObject(actualSubscriber)));
+
+        //read subscriber2
+        response = await testApi.GetSubscriber(subscriber2.Name);
+        actualSubscriberJson = await response.Content.ReadAsStringAsync();
+        actualSubscriber = JsonConvert.DeserializeObject<Subscriber>(actualSubscriberJson);
+        Assert.IsTrue(JToken.DeepEquals(JToken.FromObject(subscriber2), JToken.FromObject(actualSubscriber)));
 
         //read subscribers
         var actualSubscribersJson = await testApi.GetSubscribers();
-        actualSubscriber = JsonConvert.DeserializeObject<Subscriber[]>(actualSubscribersJson)[0];
-        Assert.IsTrue(JToken.DeepEquals(JToken.FromObject(subscriber), JToken.FromObject(actualSubscriber)));
+        var actualSubscribers = JsonConvert.DeserializeObject<Subscriber[]>(actualSubscribersJson);
+        Assert.IsTrue(JToken.DeepEquals(JToken.FromObject(new[] { subscriber1, subscriber2 }),
+            JToken.FromObject(actualSubscribers)));
 
         //send message
         var json = JsonConvert.SerializeObject(new { type = "test", data = new { message = "Hello" } });
         response = await testApi.PublishMessage(json);
         Assert.AreEqual(200, (int)response.StatusCode);
         var expected = JsonConvert.SerializeObject(new { message = "Hello" });
-        Assert.AreEqual(expected, testApi.Handler.Requests[0].Body);
+        Assert.AreEqual(expected, testApi.Handler1.Requests[0].Body);
+        Assert.AreEqual(expected, testApi.Handler2.Requests[0].Body);
 
-        //delete subscriber
-        response = await testApi.DeleteSubscriber(subscriber.Name);
+        //delete subscriber1
+        response = await testApi.DeleteSubscriber(subscriber1.Name);
         Assert.AreEqual(200, (int)response.StatusCode);
-        response = await testApi.GetSubscriber(subscriber.Name);
+        response = await testApi.GetSubscriber(subscriber1.Name);
+        Assert.AreEqual(404, (int)response.StatusCode);
+
+        //delete subscriber2
+        response = await testApi.DeleteSubscriber(subscriber2.Name);
+        Assert.AreEqual(200, (int)response.StatusCode);
+        response = await testApi.GetSubscriber(subscriber2.Name);
         Assert.AreEqual(404, (int)response.StatusCode);
     }
 }

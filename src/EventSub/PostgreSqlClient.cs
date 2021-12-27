@@ -14,7 +14,7 @@ class PostgreSqlClient : IDbClient
 
     public PostgreSqlClient(string connectionString)
     {
-        this._connectionString = connectionString;
+        _connectionString = connectionString;
     }
 
     public async Task CreateSubscribersTable()
@@ -52,13 +52,17 @@ class PostgreSqlClient : IDbClient
                 return new Dictionary<string, (int, int)>();
             default:
                 var messageCountSql = subscriberNames.Aggregate("",
-                    (sql, name) =>
-                        sql +
-                        $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM messages WHERE recipient='{name.ToLower()}';");
+                        (sql, name) =>
+                            sql +
+                            $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM messages WHERE recipient='{name.ToLower()}';")
+                    .Trim(';').Replace(";", " UNION ");
+                ;
                 var deadLetterCountSql = subscriberNames.Aggregate("",
-                    (sql, name) =>
-                        sql +
-                        $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM messages WHERE recipient='{name.ToLower()}_deadletter';");
+                        (sql, name) =>
+                            sql +
+                            $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM messages WHERE recipient='{name.ToLower()}_deadletter';")
+                    .Trim(';').Replace(";", " UNION ");
+                ;
                 var messageCountResults = await connection.QueryAsync(messageCountSql);
                 var deadLetterCountResults = await connection.QueryAsync(deadLetterCountSql);
                 var deadLetterCounts =

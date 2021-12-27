@@ -27,20 +27,29 @@ public class TestApi : IDisposable
     const string PostgreSqlConnectionString =
         "Server=localhost;Port=5432;Database=test;User Id=postgres;Password=password";
 
-    readonly AutoResetEvent autoResetEvent = new(false);
+    readonly AutoResetEvent _autoResetEvent1 = new(false);
+    readonly AutoResetEvent _autoResetEvent2 = new(false);
 
-    readonly HttpClient httpClient;
-    public readonly FakeService Handler;
+    readonly HttpClient _httpClient;
+    public readonly FakeService Handler1;
+    public readonly FakeService Handler2;
 
     TestApi(string databaseType)
     {
-        Handler = new FakeService();
-        Handler.AddResponse(".*", Method.POST, Response.WithDelegate(_ =>
+        Handler1 = new FakeService();
+        Handler1.AddResponse(".*", Method.POST, Response.WithDelegate(_ =>
         {
-            autoResetEvent.Set();
+            _autoResetEvent1.Set();
             return Response.WithStatusCode(200);
         }));
-        Handler.Start();
+        Handler1.Start();
+        Handler2 = new FakeService();
+        Handler2.AddResponse(".*", Method.POST, Response.WithDelegate(_ =>
+        {
+            _autoResetEvent2.Set();
+            return Response.WithStatusCode(200);
+        }));
+        Handler2.Start();
         Database database = null;
         switch (databaseType)
         {
@@ -72,13 +81,14 @@ public class TestApi : IDisposable
 
         var webHost = new WebHostBuilder().UseEventSub(database, "apikey");
         var testServer = new TestServer(webHost);
-        httpClient = testServer.CreateClient();
-        httpClient.DefaultRequestHeaders.Add("X-API-KEY", "apikey");
+        _httpClient = testServer.CreateClient();
+        _httpClient.DefaultRequestHeaders.Add("X-API-KEY", "apikey");
     }
 
     public void Dispose()
     {
-        Handler.Dispose();
+        Handler1.Dispose();
+        Handler2.Dispose();
     }
 
     public static TestApi MySql()
@@ -98,28 +108,29 @@ public class TestApi : IDisposable
 
     public Task<HttpResponseMessage> CreateSubscriber(string json)
     {
-        return httpClient.PostAsync("/subscribers", new StringContent(json));
+        return _httpClient.PostAsync("/subscribers", new StringContent(json));
     }
 
     public Task<string> GetSubscribers()
     {
-        return httpClient.GetStringAsync("/subscribers");
+        return _httpClient.GetStringAsync("/subscribers");
     }
 
     public Task<HttpResponseMessage> GetSubscriber(string name)
     {
-        return httpClient.GetAsync($"/subscribers/{name}");
+        return _httpClient.GetAsync($"/subscribers/{name}");
     }
 
     public Task<HttpResponseMessage> DeleteSubscriber(string name)
     {
-        return httpClient.DeleteAsync($"/subscribers/{name}");
+        return _httpClient.DeleteAsync($"/subscribers/{name}");
     }
 
     public async Task<HttpResponseMessage> PublishMessage(string json)
     {
-        var response = await httpClient.PostAsync("/", new StringContent(json));
-        autoResetEvent.WaitOne(5000);
+        var response = await _httpClient.PostAsync("/", new StringContent(json));
+        _autoResetEvent1.WaitOne(5000);
+        _autoResetEvent2.WaitOne(5000);
         return response;
     }
 }

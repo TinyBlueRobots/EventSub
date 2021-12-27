@@ -13,7 +13,7 @@ class SqlServerClient : IDbClient
 
     public SqlServerClient(string connectionString)
     {
-        this._connectionString = connectionString;
+        _connectionString = connectionString;
     }
 
     public async Task CreateSubscribersTable()
@@ -59,9 +59,13 @@ class SqlServerClient : IDbClient
             default:
                 if (!subscriberNames.Any()) return new Dictionary<string, (int, int)>();
                 var messageCountSql = subscriberNames.Aggregate("",
-                    (sql, name) => sql + $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM [{name}];");
+                        (sql, name) => sql + $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM [{name}];").Trim(';')
+                    .Replace(";", " UNION ");
+                ;
                 var deadLetterCountSql = subscriberNames.Aggregate("",
-                    (sql, name) => sql + $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM [{name}_deadletter];");
+                        (sql, name) => sql + $"SELECT '{name}' AS Name, COUNT(*) AS Count FROM [{name}_deadletter];")
+                    .Trim(';').Replace(";", " UNION ");
+                ;
                 var messageCountResults = await connection.QueryAsync(messageCountSql);
                 var deadLetterCountResults = await connection.QueryAsync(deadLetterCountSql);
                 var deadLetterCounts =
