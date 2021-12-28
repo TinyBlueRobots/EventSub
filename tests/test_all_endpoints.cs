@@ -64,5 +64,11 @@ public class test_all_endpoints
         Assert.AreEqual(200, (int)response.StatusCode);
         response = await testApi.GetSubscriber(subscriber2.Name);
         Assert.AreEqual(404, (int)response.StatusCode);
+
+        //delete subscriber2 again
+        response = await testApi.DeleteSubscriber(subscriber2.Name);
+        Assert.AreEqual(200, (int)response.StatusCode);
+        response = await testApi.GetSubscriber(subscriber2.Name);
+        Assert.AreEqual(404, (int)response.StatusCode);
     }
 }

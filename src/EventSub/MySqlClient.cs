@@ -27,7 +27,7 @@ class MySqlClient : IDbClient
     {
         await using var connection = new MySqlConnection(_connectionString);
         await connection.ExecuteAsync(
-            $"DROP TABLE `{name}`;DROP TABLE `{name}_deadletter`;DELETE FROM Subscribers WHERE Name='{name}'");
+            $"DROP TABLE IF EXISTS `{name}`;DROP TABLE IF EXISTS `{name}_deadletter`;DELETE FROM Subscribers WHERE Name='{name}'");
     }
 
     public async Task<(int, int)> GetMessageCount(string name)
