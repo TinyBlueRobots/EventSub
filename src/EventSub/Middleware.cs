@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 
 namespace EventSub;
 
@@ -89,7 +88,7 @@ public static class WebHostBuilderExtensions
         try
         {
             var json = await new StreamReader(ctx.Request.Body).ReadToEndAsync();
-            var message = JsonConvert.DeserializeObject<Message>(json) ?? throw new JsonException();
+            var message = Json.Deserialize<Message>(json) ?? throw new JsonException();
             await publish(message.Type, message);
         }
         catch (JsonException)
@@ -119,7 +118,7 @@ public static class WebHostBuilderExtensions
         try
         {
             var json = await new StreamReader(ctx.Request.Body).ReadToEndAsync();
-            var subscriber = JsonConvert.DeserializeObject<Subscriber>(json) ?? throw new JsonException();
+            var subscriber = Json.Deserialize<Subscriber>(json) ?? throw new JsonException();
             if (ValidateSubscriber(subscriber))
             {
                 if (!await TryCreateSubscriber(database, subscriber)) ctx.Response.StatusCode = 409;

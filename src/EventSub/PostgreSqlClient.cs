@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
-using Newtonsoft.Json;
 using Npgsql;
 
 namespace EventSub;
@@ -77,13 +76,13 @@ class PostgreSqlClient : IDbClient
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         var json = await connection.QueryAsync<string>("SELECT Subscriber FROM Subscribers");
-        return json.Select(JsonConvert.DeserializeObject<Subscriber>);
+        return json.Select(Json.Deserialize<Subscriber>);
     }
 
     public async Task CreateSubscriber(Subscriber subscriber)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
-        var json = JsonConvert.SerializeObject(subscriber);
+        var json = Json.Serialize(subscriber);
         await connection.ExecuteAsync(
             $"INSERT INTO Subscribers (Name, Subscriber) VALUES ('{subscriber.Name}','{json}') ON CONFLICT (Name) DO NOTHING");
     }
@@ -93,6 +92,6 @@ class PostgreSqlClient : IDbClient
         await using var connection = new NpgsqlConnection(_connectionString);
         var json = await connection.QueryFirstOrDefaultAsync<string>(
             $"SELECT Subscriber FROM Subscribers WHERE Name='{name}'");
-        return json is null ? null : JsonConvert.DeserializeObject<Subscriber>(json);
+        return json is null ? null : Json.Deserialize<Subscriber>(json);
     }
 }
