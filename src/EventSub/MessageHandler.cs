@@ -18,9 +18,9 @@ class MessageHandler : IHandleMessages<Message>, IHandleMessages<IFailed<Message
     readonly int[] _retryIntervals;
     readonly Uri _url;
 
-    public MessageHandler(int[] retryIntervals, Uri url, string? apiKey, IBus bus)
+    public MessageHandler(int[]? retryIntervals, Uri url, string? apiKey, IBus bus)
     {
-        _retryIntervals = retryIntervals;
+        _retryIntervals = retryIntervals ?? Array.Empty<int>();
         _url = url;
         _apiKey = apiKey;
         _bus = bus;
