@@ -104,7 +104,7 @@ static class PubSub
                             .Start();
                     bus.Advanced.Workers.SetNumberOfWorkers(0);
                     var handler = new MessageHandler(subscriber.RetryIntervals,
-                        new Uri(subscriber.Url), bus);
+                        new Uri(subscriber.Url), subscriber.ApiKey, bus);
                     activator.Register(() => handler);
                     bus.Advanced.Workers.SetNumberOfWorkers(
                         subscriber.NumberOfWorkers ?? Options.DefaultNumberOfWorkers);

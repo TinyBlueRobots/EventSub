@@ -13,14 +13,16 @@ namespace EventSub;
 class MessageHandler : IHandleMessages<Message>, IHandleMessages<IFailed<Message>>
 {
     static readonly HttpClient httpClient = new();
+    readonly string? _apiKey;
     readonly IBus _bus;
     readonly int[] _retryIntervals;
     readonly Uri _url;
 
-    public MessageHandler(int[] retryIntervals, Uri url, IBus bus)
+    public MessageHandler(int[] retryIntervals, Uri url, string? apiKey, IBus bus)
     {
         _retryIntervals = retryIntervals;
         _url = url;
+        _apiKey = apiKey;
         _bus = bus;
     }
 
@@ -35,8 +37,12 @@ class MessageHandler : IHandleMessages<Message>, IHandleMessages<IFailed<Message
 
     public async Task Handle(Message message)
     {
-        var json = Json.Serialize(message.Data);
-        var response = await httpClient.PostAsync(_url, new StringContent(json, Encoding.UTF8, "application/json"));
+        var request = new HttpRequestMessage(HttpMethod.Post, _url)
+        {
+            Content = new StringContent(Json.Serialize(message.Data), Encoding.UTF8, "application/json")
+        };
+        if (_apiKey is not null) request.Headers.Add("X-API-KEY", _apiKey);
+        var response = await httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
     }
 }

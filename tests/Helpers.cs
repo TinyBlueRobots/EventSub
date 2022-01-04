@@ -13,7 +13,7 @@ using Npgsql;
 
 namespace Tests;
 
-record Subscriber(string Name, string[] Types, string Url, int[] RetryIntervals, int? MaxParallelism,
+record Subscriber(string Name, string[] Types, string Url, string? ApiKey, int[]? RetryIntervals, int? MaxParallelism,
     int? NumberOfWorkers);
 
 public class TestApi : IDisposable
@@ -37,26 +37,30 @@ public class TestApi : IDisposable
     TestApi(string databaseType)
     {
         Handler1 = new FakeService();
-        Handler1.AddResponse(".*", Method.POST, Response.WithDelegate(_ =>
+        Handler1.AddResponse(".*", Method.POST, Response.WithDelegate(request =>
         {
             _autoResetEvent1.Set();
-            return Response.WithStatusCode(200);
+            return request.Headers["X-API-KEY"][0] == "apikey"
+                ? Response.WithStatusCode(200)
+                : Response.WithStatusCode(401);
         }));
         Handler1.Start();
         Handler2 = new FakeService();
-        Handler2.AddResponse(".*", Method.POST, Response.WithDelegate(_ =>
+        Handler2.AddResponse(".*", Method.POST, Response.WithDelegate(request =>
         {
             _autoResetEvent2.Set();
-            return Response.WithStatusCode(200);
+            return request.Headers["X-API-KEY"][0] == "apikey"
+                ? Response.WithStatusCode(200)
+                : Response.WithStatusCode(401);
         }));
         Handler2.Start();
-        Database database = null;
+        Database? database = null;
         switch (databaseType)
         {
             case nameof(Database.MySql):
                 using (var connection = new MySqlConnection(MySqlConnectionString))
                 {
-                    connection.Execute("DROP TABLE test.Subscriptions;DROP TABLE test.Subscribers");
+                    connection.Execute("DROP TABLE IF EXISTS test.Subscriptions;DROP TABLE IF EXISTS test.Subscribers");
                 }
 
                 database = Database.MySql(MySqlConnectionString);
@@ -79,7 +83,7 @@ public class TestApi : IDisposable
                 break;
         }
 
-        var webHost = new WebHostBuilder().UseEventSub(database, "apikey");
+        var webHost = new WebHostBuilder().UseEventSub(database!, "apikey");
         var testServer = new TestServer(webHost);
         _httpClient = testServer.CreateClient();
         _httpClient.DefaultRequestHeaders.Add("X-API-KEY", "apikey");

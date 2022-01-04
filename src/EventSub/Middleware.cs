@@ -35,6 +35,7 @@ public static class WebHostBuilderExtensions
             var (activeMessageCount, deadLetterMessageCount) = messageCounts[subscriber.Name];
             subscriberDetails.Add(new
             {
+                subscriber.ApiKey,
                 subscriber.RetryIntervals,
                 subscriber.MaxParallelism,
                 subscriber.Name,
@@ -61,6 +62,7 @@ public static class WebHostBuilderExtensions
                 var (activeMessageCount, deadLetterMessageCount) = await sqlClient.GetMessageCount(name);
                 var subscriberDetails = new
                 {
+                    subscriber.ApiKey,
                     subscriber.RetryIntervals,
                     subscriber.MaxParallelism,
                     subscriber.Name,

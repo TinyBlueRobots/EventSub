@@ -13,10 +13,10 @@ public class test_all_endpoints
     [TestCaseSource(nameof(TestApis))]
     public async Task all_endpoints_work(TestApi testApi)
     {
-        var subscriber1 = new Subscriber("test1", new[] { "test" }, testApi.Handler1.Url, null, null, null);
+        var subscriber1 = new Subscriber("test1", new[] { "test" }, testApi.Handler1.Url, "apikey", null, null, null);
         var subscriber1Json = JsonConvert.SerializeObject(subscriber1);
 
-        var subscriber2 = new Subscriber("test2", new[] { "test" }, testApi.Handler2.Url, null, null, null);
+        var subscriber2 = new Subscriber("test2", new[] { "test" }, testApi.Handler2.Url, "apikey", null, null, null);
         var subscriber2Json = JsonConvert.SerializeObject(subscriber2);
 
         //create subscriber1
@@ -31,19 +31,19 @@ public class test_all_endpoints
         response = await testApi.GetSubscriber(subscriber1.Name);
         var actualSubscriberJson = await response.Content.ReadAsStringAsync();
         var actualSubscriber = JsonConvert.DeserializeObject<Subscriber>(actualSubscriberJson);
-        Assert.IsTrue(JToken.DeepEquals(JToken.FromObject(subscriber1), JToken.FromObject(actualSubscriber)));
+        Assert.IsTrue(JToken.DeepEquals(JToken.FromObject(subscriber1), JToken.FromObject(actualSubscriber!)));
 
         //read subscriber2
         response = await testApi.GetSubscriber(subscriber2.Name);
         actualSubscriberJson = await response.Content.ReadAsStringAsync();
         actualSubscriber = JsonConvert.DeserializeObject<Subscriber>(actualSubscriberJson);
-        Assert.IsTrue(JToken.DeepEquals(JToken.FromObject(subscriber2), JToken.FromObject(actualSubscriber)));
+        Assert.IsTrue(JToken.DeepEquals(JToken.FromObject(subscriber2), JToken.FromObject(actualSubscriber!)));
 
         //read subscribers
         var actualSubscribersJson = await testApi.GetSubscribers();
         var actualSubscribers = JsonConvert.DeserializeObject<Subscriber[]>(actualSubscribersJson);
         Assert.IsTrue(JToken.DeepEquals(JToken.FromObject(new[] { subscriber1, subscriber2 }),
-            JToken.FromObject(actualSubscribers)));
+            JToken.FromObject(actualSubscribers!)));
 
         //send message
         var json = JsonConvert.SerializeObject(new { type = "test", data = new { message = "Hello" } });
