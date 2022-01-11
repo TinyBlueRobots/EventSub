@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -24,10 +25,10 @@ public static class WebHostBuilderExtensions
         };
     }
 
-    static async Task GetSubscribers(Database database, HttpContext ctx)
+    static async Task ReadSubscribers(Database database, HttpContext ctx)
     {
         var sqlClient = CreateSqlClient(database);
-        var messageCounts = await sqlClient.GetMessageCounts();
+        var messageCounts = await sqlClient.ReadMessageCounts();
         var subscribers = await sqlClient.ReadSubscribers();
         var subscriberDetails = new List<dynamic>();
         foreach (var subscriber in subscribers)
@@ -47,10 +48,12 @@ public static class WebHostBuilderExtensions
             });
         }
 
-        await ctx.Response.WriteAsJsonAsync(subscriberDetails);
+        var json = Json.Serialize(subscriberDetails);
+        ctx.Response.Headers.ContentEncoding = "application/json";
+        await ctx.Response.WriteAsync(json, Encoding.UTF8);
     }
 
-    static async Task GetSubscriber(Database database, HttpContext ctx)
+    static async Task ReadSubscriber(Database database, HttpContext ctx)
     {
         var name = ctx.Request.RouteValues["name"]?.ToString();
         if (name is not null)
@@ -59,7 +62,7 @@ public static class WebHostBuilderExtensions
             var subscriber = await sqlClient.ReadSubscriber(name);
             if (subscriber is not null)
             {
-                var (activeMessageCount, deadLetterMessageCount) = await sqlClient.GetMessageCount(name);
+                var (activeMessageCount, deadLetterMessageCount) = await sqlClient.ReadMessageCount(name);
                 var subscriberDetails = new
                 {
                     subscriber.ApiKey,
@@ -72,7 +75,9 @@ public static class WebHostBuilderExtensions
                     MessageCount = activeMessageCount,
                     DeadLetterCount = deadLetterMessageCount
                 };
-                await ctx.Response.WriteAsJsonAsync(subscriberDetails);
+                var json = Json.Serialize(subscriberDetails);
+                ctx.Response.Headers.ContentEncoding = "application/json";
+                await ctx.Response.WriteAsync(json, Encoding.UTF8);
             }
             else
             {
@@ -155,6 +160,26 @@ public static class WebHostBuilderExtensions
         }
     }
 
+    static async Task ReadMessages(Database database, bool deadletters, HttpContext ctx)
+    {
+        var name = ctx.Request.RouteValues["name"]?.ToString();
+        var delete = ctx.Request.Query["delete"][0].ToLower() == "true";
+        if (name is not null)
+        {
+            var sqlClient = CreateSqlClient(database);
+            var messages = deadletters
+                ? await sqlClient.ReadDeadLetters(name, delete)
+                : await sqlClient.ReadMessages(name, delete);
+            var json = Json.Serialize(messages);
+            ctx.Response.Headers.ContentEncoding = "application/json";
+            await ctx.Response.WriteAsync(json, Encoding.UTF8);
+        }
+        else
+        {
+            ctx.Response.StatusCode = 404;
+        }
+    }
+
     public static IWebHostBuilder UseEventSub(this IWebHostBuilder builder, Database database, string apiKey)
     {
         var publish = PubSub.CreatePublisher(database);
@@ -192,8 +217,10 @@ public static class WebHostBuilderExtensions
                 endpoints.MapPost("/", ctx => PublishMessage(publish, ctx));
                 endpoints.MapPost("/subscribers", ctx => CreateSubscriber(database, ctx));
                 endpoints.MapDelete("/subscribers/{name:required}", ctx => DeleteSubscriber(database, ctx));
-                endpoints.MapGet("/subscribers/{name:required}", ctx => GetSubscriber(database, ctx));
-                endpoints.MapGet("/subscribers", ctx => GetSubscribers(database, ctx));
+                endpoints.MapGet("/subscribers/{name:required}", ctx => ReadSubscriber(database, ctx));
+                endpoints.MapGet("/subscribers", ctx => ReadSubscribers(database, ctx));
+                endpoints.MapGet("/subscribers/{name:required}/messages", ctx => ReadMessages(database, false, ctx));
+                endpoints.MapGet("/subscribers/{name:required}/deadletters", ctx => ReadMessages(database, true, ctx));
             });
         });
         return builder;

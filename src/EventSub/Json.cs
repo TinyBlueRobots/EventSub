@@ -7,11 +7,10 @@ namespace EventSub;
 
 static class Json
 {
-    static readonly JsonSerializerSettings? settings;
+    static readonly JsonSerializerSettings settings = new();
 
     static Json()
     {
-        settings = new JsonSerializerSettings();
         settings.Converters.Add(new StringEnumConverter { NamingStrategy = new CamelCaseNamingStrategy() });
         settings.ContractResolver = new CamelCasePropertyNamesContractResolver();
         settings.NullValueHandling = NullValueHandling.Ignore;

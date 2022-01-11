@@ -29,10 +29,12 @@ public class TestApi : IDisposable
 
     readonly AutoResetEvent _autoResetEvent1 = new(false);
     readonly AutoResetEvent _autoResetEvent2 = new(false);
+    public readonly AutoResetEvent AutoResetEvent3 = new(false);
 
     readonly HttpClient _httpClient;
     public readonly FakeService Handler1;
     public readonly FakeService Handler2;
+    public readonly FakeService Handler3;
 
     TestApi(string databaseType)
     {
@@ -54,6 +56,13 @@ public class TestApi : IDisposable
                 : Response.WithStatusCode(401);
         }));
         Handler2.Start();
+        Handler3 = new FakeService();
+        Handler3.AddResponse(".*", Method.POST, Response.WithDelegate(request =>
+        {
+            AutoResetEvent3.Set();
+            return Response.WithStatusCode(500);
+        }));
+        Handler3.Start();
         Database? database = null;
         switch (databaseType)
         {
@@ -130,11 +139,28 @@ public class TestApi : IDisposable
         return _httpClient.DeleteAsync($"/subscribers/{name}");
     }
 
-    public async Task<HttpResponseMessage> PublishMessage(string json)
+    public async Task<HttpResponseMessage> PublishMessageHandler1And2(string json)
     {
         var response = await _httpClient.PostAsync("/", new StringContent(json));
         _autoResetEvent1.WaitOne(5000);
         _autoResetEvent2.WaitOne(5000);
         return response;
+    }
+    
+    public async Task<HttpResponseMessage> PublishMessageHandler3(string json)
+    {
+        var response = await _httpClient.PostAsync("/", new StringContent(json));
+        AutoResetEvent3.WaitOne(5000);
+        return response;
+    }    
+
+    public Task<string> ReadMessages(string subscriberName, bool delete)
+    {
+        return _httpClient.GetStringAsync($"/subscribers/{subscriberName}/messages?delete={delete}");
+    }
+
+    public Task<string> ReadDeadLetters(string subscriberName, bool delete)
+    {
+        return _httpClient.GetStringAsync($"/subscribers/{subscriberName}/deadletters?delete={delete}");
     }
 }

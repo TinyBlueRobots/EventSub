@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -29,7 +30,7 @@ class SqlServerClient : IDbClient
             $"DROP TABLE IF EXISTS [{name}];DROP TABLE IF EXISTS [{name}_deadletter];DELETE FROM Subscribers WHERE Name='{name}'");
     }
 
-    public async Task<(int, int)> GetMessageCount(string name)
+    public async Task<(int, int)> ReadMessageCount(string name)
     {
         await using var connection = new SqlConnection(_connectionString);
         var subscriberExists =
@@ -46,7 +47,7 @@ class SqlServerClient : IDbClient
         return (0, 0);
     }
 
-    public async Task<Dictionary<string, (int, int)>> GetMessageCounts()
+    public async Task<Dictionary<string, (int, int)>> ReadMessageCounts()
     {
         await using var connection = new SqlConnection(_connectionString);
         var subscriberNames = await connection.QueryAsync<string>("SELECT Name FROM Subscribers")
@@ -78,7 +79,7 @@ class SqlServerClient : IDbClient
     {
         await using var connection = new SqlConnection(_connectionString);
         var json = await connection.QueryAsync<string>("SELECT Subscriber FROM Subscribers");
-        return json.Select(Json.Deserialize<Subscriber>);
+        return json.Select(Json.Deserialize<Subscriber>)!;
     }
 
     public async Task CreateSubscriber(Subscriber subscriber)
@@ -95,5 +96,35 @@ class SqlServerClient : IDbClient
         var json = await connection.QueryFirstOrDefaultAsync<string>(
             $"SELECT Subscriber FROM Subscribers WHERE Name='{name}'");
         return json is null ? null : Json.Deserialize<Subscriber>(json);
+    }
+
+    async Task<IEnumerable<Message>> ReadMessages(string tableName, bool deadLetters, bool delete)
+    {
+        tableName = deadLetters ? $"{tableName}_deadletter" : tableName;
+        await using var connection = new SqlConnection(_connectionString);
+        var messages = await connection.QueryAsync(
+            $"SELECT TOP(10) Id, CAST(body AS VARCHAR(MAX)) AS Body FROM {tableName}");
+        messages = messages.ToArray();
+        if (delete)
+        {
+            var ids = string.Join(',', messages.Select(x => (long)x.Id));
+            if (!String.IsNullOrEmpty(ids))
+            {
+                await connection.ExecuteAsync(
+                    $"DELETE FROM {tableName} WHERE Id IN ({ids})");
+            }
+        }
+
+        return messages.Select(x => (string)x.Body).Select(Json.Deserialize<Message>)!;
+    }
+
+    public Task<IEnumerable<Message>> ReadMessages(string subscriberName, bool delete)
+    {
+        return ReadMessages(subscriberName, false, delete);
+    }
+
+    public Task<IEnumerable<Message>> ReadDeadLetters(string subscriberName, bool delete)
+    {
+        return ReadMessages(subscriberName, true, delete);
     }
 }

@@ -30,7 +30,7 @@ class PostgreSqlClient : IDbClient
             $"DELETE FROM messages WHERE recipient='{name.ToLower()}' or recipient='{name.ToLower()}_deadletter';DELETE FROM Subscribers WHERE Name='{name}'");
     }
 
-    public async Task<(int, int)> GetMessageCount(string name)
+    public async Task<(int, int)> ReadMessageCount(string name)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         var messageCountSql = $"SELECT COUNT(*) FROM messages WHERE recipient='{name.ToLower()}'";
@@ -40,7 +40,7 @@ class PostgreSqlClient : IDbClient
         return (Math.Max(messageCount, 0), Math.Max(deadLetterCount, 0));
     }
 
-    public async Task<Dictionary<string, (int, int)>> GetMessageCounts()
+    public async Task<Dictionary<string, (int, int)>> ReadMessageCounts()
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         var subscriberNames = await connection.QueryAsync<string>("SELECT Name FROM Subscribers")
@@ -76,7 +76,7 @@ class PostgreSqlClient : IDbClient
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         var json = await connection.QueryAsync<string>("SELECT Subscriber FROM Subscribers");
-        return json.Select(Json.Deserialize<Subscriber>);
+        return json.Select(Json.Deserialize<Subscriber>)!;
     }
 
     public async Task CreateSubscriber(Subscriber subscriber)
@@ -93,5 +93,35 @@ class PostgreSqlClient : IDbClient
         var json = await connection.QueryFirstOrDefaultAsync<string>(
             $"SELECT Subscriber FROM Subscribers WHERE Name='{name}'");
         return json is null ? null : Json.Deserialize<Subscriber>(json);
+    }
+
+    async Task<IEnumerable<Message>> ReadMessages(string tableName, bool deadLetters, bool delete)
+    {
+        tableName = deadLetters ? $"{tableName}_deadletter" : tableName;
+        await using var connection = new NpgsqlConnection(_connectionString);
+        var messages = await connection.QueryAsync(
+            $"SELECT Id, convert_from(body, 'UTF8') AS Body FROM messages WHERE recipient='{tableName.ToLower()}' LIMIT 10");
+        messages = messages.ToArray();
+        if (delete)
+        {
+            var ids = string.Join(',', messages.Select(x => (long)x.id));
+            if (!String.IsNullOrEmpty(ids))
+            {
+                await connection.ExecuteAsync(
+                    $"DELETE FROM messages WHERE Id IN ({ids})");
+            }
+        }
+
+        return messages.Select(x => (string)x.body).Select(Json.Deserialize<Message>)!;
+    }
+
+    public Task<IEnumerable<Message>> ReadMessages(string subscriberName, bool delete)
+    {
+        return ReadMessages(subscriberName, false, delete);
+    }
+
+    public Task<IEnumerable<Message>> ReadDeadLetters(string subscriberName, bool delete)
+    {
+        return ReadMessages(subscriberName, true, delete);
     }
 }

@@ -11,7 +11,7 @@ namespace EventSub;
 
 static class PubSub
 {
-    static readonly ConcurrentDictionary<string, (Subscriber, List<(string, IBus)>)> subscribers =
+    static readonly ConcurrentDictionary<string, (Subscriber, ConcurrentBag<(string, IBus)>)> subscribers =
         new();
 
     internal static async Task DeleteSubscriber(string name)
@@ -64,7 +64,7 @@ static class PubSub
         {
             case false:
             {
-                var subscriptions = new List<(string, IBus)>();
+                var subscriptions = new ConcurrentBag<(string, IBus)>();
                 foreach (var type in subscriber.Types)
                 {
                     var activator = new BuiltinHandlerActivator();
