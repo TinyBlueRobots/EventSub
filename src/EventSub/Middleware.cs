@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Primitives;
 
 namespace EventSub;
 
@@ -49,7 +51,7 @@ public static class WebHostBuilderExtensions
         }
 
         var json = Json.Serialize(subscriberDetails);
-        ctx.Response.Headers.ContentEncoding = "application/json";
+        ctx.Response.Headers.ContentType = "application/json; charset=utf-8";
         await ctx.Response.WriteAsync(json, Encoding.UTF8);
     }
 
@@ -76,7 +78,7 @@ public static class WebHostBuilderExtensions
                     DeadLetterCount = deadLetterMessageCount
                 };
                 var json = Json.Serialize(subscriberDetails);
-                ctx.Response.Headers.ContentEncoding = "application/json";
+                ctx.Response.Headers.ContentType = "application/json; charset=utf-8";
                 await ctx.Response.WriteAsync(json, Encoding.UTF8);
             }
             else
@@ -163,7 +165,10 @@ public static class WebHostBuilderExtensions
     static async Task ReadMessages(Database database, bool deadletters, HttpContext ctx)
     {
         var name = ctx.Request.RouteValues["name"]?.ToString();
-        var delete = ctx.Request.Query["delete"][0].ToLower() == "true";
+        var delete =
+            ctx.Request.Query
+                .SingleOrDefault(kvp => kvp.Key == "delete", new KeyValuePair<string, StringValues>("delete", "false"))
+                .Value.ToString().ToLower() == "true";
         if (name is not null)
         {
             var sqlClient = CreateSqlClient(database);
@@ -171,7 +176,7 @@ public static class WebHostBuilderExtensions
                 ? await sqlClient.ReadDeadLetters(name, delete)
                 : await sqlClient.ReadMessages(name, delete);
             var json = Json.Serialize(messages);
-            ctx.Response.Headers.ContentEncoding = "application/json";
+            ctx.Response.Headers.ContentType = "application/json; charset=utf-8";
             await ctx.Response.WriteAsync(json, Encoding.UTF8);
         }
         else
