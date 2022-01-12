@@ -26,13 +26,18 @@ class MessageHandler : IHandleMessages<Message>, IHandleMessages<IFailed<Message
         _bus = bus;
     }
 
-    public Task Handle(IFailed<Message> message)
+    public async Task Handle(IFailed<Message> message)
     {
         message.Headers.TryGetValue(Headers.DeferCount, out var deferCountValue);
-        int.TryParse(deferCountValue, out var deferCount);
-        return deferCount < _retryIntervals.Length
-            ? _bus.Advanced.TransportMessage.Defer(TimeSpan.FromSeconds(_retryIntervals[deferCount]))
-            : _bus.Advanced.TransportMessage.Deadletter(message.ErrorDescription);
+        var deferCountParsed = int.TryParse(deferCountValue, out var deferCount);
+        if (deferCountParsed && deferCount < _retryIntervals.Length)
+        {
+            await _bus.Advanced.TransportMessage.Defer(TimeSpan.FromSeconds(_retryIntervals[deferCount]));
+        }
+        else
+        {
+            await _bus.Advanced.TransportMessage.Deadletter(message.ErrorDescription);
+        }
     }
 
     public async Task Handle(Message message)
