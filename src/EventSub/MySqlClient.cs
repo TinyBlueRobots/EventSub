@@ -97,7 +97,7 @@ class MySqlClient : IDbClient
         tableName = deadLetters ? $"{tableName}_deadletter" : tableName;
         await using var connection = new MySqlConnection(_connectionString);
         var messages = await connection.QueryAsync(
-            $"SELECT Id, CONVERT(body USING utf8) AS Body FROM {tableName} LIMIT 10");
+            $"SELECT Id, CONVERT(body USING utf8mb4) AS Body FROM {tableName} LIMIT 10");
         messages = messages.ToArray();
         if (delete)
         {
