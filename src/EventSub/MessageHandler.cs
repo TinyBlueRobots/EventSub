@@ -32,7 +32,16 @@ class MessageHandler : IHandleMessages<Message>, IHandleMessages<IFailed<Message
         var deferCountParsed = int.TryParse(deferCountValue, out var deferCount);
         if (deferCountParsed && deferCount < _retryIntervals.Length)
         {
-            await _bus.Advanced.TransportMessage.Defer(TimeSpan.FromSeconds(_retryIntervals[deferCount]));
+            try
+            {
+                await _bus.Advanced.TransportMessage.Defer(TimeSpan.FromSeconds(_retryIntervals[deferCount]));
+            }
+            catch (Exception e)
+            {
+                await Console.Error.WriteLineAsync($"Failed to defer message: {e}");
+                await _bus.Advanced.TransportMessage.Deadletter(message.ErrorDescription);
+                throw;
+            }
         }
         else
         {
