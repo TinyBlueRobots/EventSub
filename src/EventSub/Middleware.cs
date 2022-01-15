@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Rebus.Config;
+using Rebus.Logging;
 
 namespace EventSub;
 
@@ -124,7 +125,8 @@ public static class WebHostBuilderExtensions
                && Uri.IsWellFormedUriString(subscriber.Url, UriKind.Absolute);
     }
 
-    static async Task CreateSubscriber(Database database, HttpContext ctx, Action<RebusLoggingConfigurer>? logging)
+    static async Task CreateSubscriber(Database database, HttpContext ctx,
+        Action<RebusLoggingConfigurer>? logging)
     {
         try
         {

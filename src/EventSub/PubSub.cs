@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Rebus.Activation;
 using Rebus.Bus;
 using Rebus.Config;
+using Rebus.Logging;
 using Rebus.Retry.Simple;
 
 namespace EventSub;
@@ -27,7 +28,7 @@ static class PubSub
         }
     }
 
-    internal static Publish CreatePublisher(Database database, Action<RebusLoggingConfigurer>? logging )
+    internal static Publish CreatePublisher(Database database, Action<RebusLoggingConfigurer>? logging)
     {
         var configurer = Configure.With(new BuiltinHandlerActivator()).Logging(l => logging?.Invoke(l));
         configurer =
@@ -59,7 +60,7 @@ static class PubSub
     }
 
     internal static async Task<bool> CreateSubscriber(Database database, Subscriber subscriber,
-        Action<RebusLoggingConfigurer>? logging )
+        Action<RebusLoggingConfigurer>? logging)
     {
         switch (subscribers.Keys.Contains(subscriber.Name))
         {
