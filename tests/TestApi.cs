@@ -29,7 +29,7 @@ public class TestApi : IDisposable
 
     readonly AutoResetEvent _autoResetEvent1 = new(false);
     readonly AutoResetEvent _autoResetEvent2 = new(false);
-    public readonly AutoResetEvent AutoResetEvent3 = new(false);
+    readonly AutoResetEvent _autoResetEvent3 = new(false);
 
     readonly HttpClient _httpClient;
     public readonly FakeService Handler1;
@@ -59,7 +59,7 @@ public class TestApi : IDisposable
         Handler3 = new FakeService();
         Handler3.AddResponse(".*", Method.POST, Response.WithDelegate(request =>
         {
-            AutoResetEvent3.Set();
+            _autoResetEvent3.Set();
             return Response.WithStatusCode(500);
         }));
         Handler3.Start();
@@ -150,7 +150,7 @@ public class TestApi : IDisposable
     public async Task<HttpResponseMessage> PublishMessageHandler3(string json)
     {
         var response = await _httpClient.PostAsync("/", new StringContent(json));
-        AutoResetEvent3.WaitOne(5000);
+        _autoResetEvent3.WaitOne(5000);
         return response;
     }    
 

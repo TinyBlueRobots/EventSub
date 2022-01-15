@@ -27,9 +27,9 @@ static class PubSub
         }
     }
 
-    internal static Publish CreatePublisher(Database database)
+    internal static Publish CreatePublisher(Database database, Action<RebusLoggingConfigurer>? logging )
     {
-        var configurer = Configure.With(new BuiltinHandlerActivator());
+        var configurer = Configure.With(new BuiltinHandlerActivator()).Logging(l => logging?.Invoke(l));
         configurer =
             database.Type switch
             {
@@ -58,7 +58,8 @@ static class PubSub
         return configurer.Start().Advanced.Topics.Publish;
     }
 
-    internal static async Task<bool> CreateSubscriber(Database database, Subscriber subscriber)
+    internal static async Task<bool> CreateSubscriber(Database database, Subscriber subscriber,
+        Action<RebusLoggingConfigurer>? logging )
     {
         switch (subscribers.Keys.Contains(subscriber.Name))
         {
@@ -68,7 +69,7 @@ static class PubSub
                 foreach (var type in subscriber.Types)
                 {
                     var activator = new BuiltinHandlerActivator();
-                    var configurer = Configure.With(activator);
+                    var configurer = Configure.With(activator).Logging(l => logging?.Invoke(l));
                     configurer =
                         database.Type switch
                         {

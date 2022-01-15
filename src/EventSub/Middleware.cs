@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
+using Rebus.Config;
 
 namespace EventSub;
 
@@ -106,11 +107,12 @@ public static class WebHostBuilderExtensions
         }
     }
 
-    static async Task<bool> TryCreateSubscriber(Database database, Subscriber subscriber)
+    static async Task<bool> TryCreateSubscriber(Database database, Subscriber subscriber,
+        Action<RebusLoggingConfigurer>? logging)
     {
         if (subscriber.Name is null || !Uri.IsWellFormedUriString(subscriber.Url, UriKind.Absolute))
             throw new JsonException();
-        var created = await PubSub.CreateSubscriber(database, subscriber);
+        var created = await PubSub.CreateSubscriber(database, subscriber, logging);
         if (created) await CreateSqlClient(database).CreateSubscriber(subscriber);
         return created;
     }
@@ -122,7 +124,7 @@ public static class WebHostBuilderExtensions
                && Uri.IsWellFormedUriString(subscriber.Url, UriKind.Absolute);
     }
 
-    static async Task CreateSubscriber(Database database, HttpContext ctx)
+    static async Task CreateSubscriber(Database database, HttpContext ctx, Action<RebusLoggingConfigurer>? logging)
     {
         try
         {
@@ -130,7 +132,7 @@ public static class WebHostBuilderExtensions
             var subscriber = Json.Deserialize<Subscriber>(json) ?? throw new JsonException();
             if (ValidateSubscriber(subscriber))
             {
-                if (!await TryCreateSubscriber(database, subscriber)) ctx.Response.StatusCode = 409;
+                if (!await TryCreateSubscriber(database, subscriber, logging)) ctx.Response.StatusCode = 409;
             }
             else
             {
@@ -185,16 +187,17 @@ public static class WebHostBuilderExtensions
         }
     }
 
-    public static IWebHostBuilder UseEventSub(this IWebHostBuilder builder, Database database, string apiKey)
+    public static IWebHostBuilder UseEventSub(this IWebHostBuilder builder, Database database, string apiKey,
+        Action<RebusLoggingConfigurer>? logging = null)
     {
-        var publish = PubSub.CreatePublisher(database);
+        var publish = PubSub.CreatePublisher(database, logging);
         var sqlClient = CreateSqlClient(database);
         sqlClient.CreateSubscribersTable().Wait();
         var subscribers = sqlClient.ReadSubscribers().Result;
         builder.ConfigureServices(services => services.AddRouting());
         builder.Configure(app =>
         {
-            foreach (var subscriber in subscribers) TryCreateSubscriber(database, subscriber).Wait();
+            foreach (var subscriber in subscribers) TryCreateSubscriber(database, subscriber, logging).Wait();
             app.UseExceptionHandler(errorApp => errorApp.Run(async ctx =>
             {
                 ctx.Response.StatusCode = 500;
@@ -220,7 +223,7 @@ public static class WebHostBuilderExtensions
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapPost("/", ctx => PublishMessage(publish, ctx));
-                endpoints.MapPost("/subscribers", ctx => CreateSubscriber(database, ctx));
+                endpoints.MapPost("/subscribers", ctx => CreateSubscriber(database, ctx, logging));
                 endpoints.MapDelete("/subscribers/{name:required}", ctx => DeleteSubscriber(database, ctx));
                 endpoints.MapGet("/subscribers/{name:required}", ctx => ReadSubscriber(database, ctx));
                 endpoints.MapGet("/subscribers", ctx => ReadSubscribers(database, ctx));
